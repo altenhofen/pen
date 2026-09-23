@@ -3,6 +3,8 @@ package io.github.altenhofen.pen.profile
 import io.github.altenhofen.pen.recognition.ClusterId
 import io.github.altenhofen.pen.recognition.FeatureVector
 import io.github.altenhofen.pen.recognition.PrototypeCluster
+import io.github.altenhofen.pen.recognition.WORD_SAMPLE_COUNT
+import io.github.altenhofen.pen.recognition.WordSample
 import io.github.altenhofen.pen.settings.MotorSettings
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -17,7 +19,8 @@ import java.util.zip.ZipOutputStream
 
 internal object ProfileArchiveCodec {
     const val ENTRY_NAME = "profile.json"
-    const val FORMAT_VERSION = 1
+    const val FORMAT_VERSION = 2
+    private val READABLE_VERSIONS = 1..FORMAT_VERSION
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -47,7 +50,7 @@ internal object ProfileArchiveCodec {
         val bytes = jsonBytes ?: throw ProfileTransferException("missing $ENTRY_NAME")
         return try {
             val wire = json.decodeFromString(ProfileWire.serializer(), bytes.toString(Charsets.UTF_8))
-            if (wire.formatVersion != FORMAT_VERSION) {
+            if (wire.formatVersion !in READABLE_VERSIONS) {
                 throw ProfileTransferException("unsupported formatVersion ${wire.formatVersion}")
             }
             PenProfile.create(
@@ -58,6 +61,7 @@ internal object ProfileArchiveCodec {
                     wire.motor.allowFingerInput,
                 ),
                 wire.prototypes.map { it.toCluster() },
+                wire.words.map { it.toSample() },
             )
         } catch (error: ProfileTransferException) {
             throw error
@@ -87,7 +91,11 @@ internal object ProfileArchiveCodec {
                 vector = cluster.vector.copyValues().toList(),
             )
         },
+        words = words.map { WordWire(it.id, it.word, it.vector.copyValues().toList(), it.confirmedAt) },
     )
+
+    private fun WordWire.toSample() =
+        WordSample(id, word, FeatureVector.from(vector.toFloatArray(), WORD_SAMPLE_COUNT), confirmedAt)
 
     private fun PrototypeWire.toCluster(): PrototypeCluster {
         if (label.length != 1) throw ProfileTransferException("label must be a single character")
@@ -100,6 +108,7 @@ private data class ProfileWire(
     val formatVersion: Int,
     val motor: MotorWire,
     val prototypes: List<PrototypeWire>,
+    val words: List<WordWire> = emptyList(),
 )
 
 @Serializable
@@ -115,4 +124,12 @@ private data class PrototypeWire(
     val id: String,
     val label: String,
     val vector: List<Float>,
+)
+
+@Serializable
+private data class WordWire(
+    val id: String,
+    val word: String,
+    val vector: List<Float>,
+    val confirmedAt: Long,
 )
