@@ -22,6 +22,7 @@ class StylusGateTest {
     fun trainingAcceptsStylusAndFinger() {
         assertTrue(StylusGate.acceptsTraining(MotionEvent.TOOL_TYPE_STYLUS))
         assertTrue(StylusGate.acceptsTraining(MotionEvent.TOOL_TYPE_FINGER))
+        assertTrue(StylusGate.acceptsTraining(MotionEvent.TOOL_TYPE_MOUSE))
         assertFalse(StylusGate.acceptsTraining(MotionEvent.TOOL_TYPE_UNKNOWN))
     }
 }

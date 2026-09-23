@@ -33,19 +33,14 @@ internal abstract class PrototypeDao {
     @Query("SELECT * FROM prototype_clusters WHERE cluster_id = :clusterId")
     abstract fun find(clusterId: String): ClusterRow?
 
-    @Query("SELECT COUNT(*) FROM prototype_clusters WHERE cluster_id IN (:clusterIds)")
-    abstract fun countExisting(clusterIds: List<String>): Int
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract fun upsert(rows: List<ClusterRow>)
 
     @Query("DELETE FROM prototype_clusters")
     abstract fun deleteAll()
 
-    @Transaction
-    open fun insertUnlessAnyExists(rows: List<ClusterRow>) {
-        if (countExisting(rows.map { it.clusterId }) == 0) upsert(rows)
-    }
+    @Query("DELETE FROM prototype_clusters WHERE cluster_id = :exact OR cluster_id LIKE :like")
+    abstract fun deleteMatching(exact: String, like: String)
 
     @Transaction
     open fun replaceAll(rows: List<ClusterRow>) {
@@ -105,13 +100,11 @@ internal class PrototypeStore(private val dao: PrototypeDao) {
         return updated
     }
 
-    fun commitCalibration(payload: CalibrationPayload) {
+    fun commitTraining(payload: CalibrationPayload) {
         seedIfEmpty()
-        dao.insertUnlessAnyExists(payload.clusters.map { it.toRow() })
-    }
-
-    fun commitUserTraining(payload: CalibrationPayload) {
-        seedIfEmpty()
+        payload.clusters.map { it.label }.distinct().forEach { label ->
+            dao.deleteMatching("train:$label", "train:$label:%")
+        }
         dao.upsert(payload.clusters.map { it.toRow() })
     }
 

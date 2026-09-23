@@ -23,13 +23,8 @@ internal class AdaptiveRecognizer(
         recognizer.replace(store.adapt(result.winner.clusterId, result.sample, feedback))
     }
 
-    fun commitCalibration(payload: CalibrationPayload) {
-        store.commitCalibration(payload)
-        reload()
-    }
-
-    fun commitUserTraining(payload: CalibrationPayload) {
-        store.commitUserTraining(payload)
+    fun commitTraining(payload: CalibrationPayload) {
+        store.commitTraining(payload)
         reload()
     }
 

@@ -1,12 +1,15 @@
 package io.github.altenhofen.pen
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -23,8 +26,7 @@ import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
 import io.github.altenhofen.pen.recognition.PrototypeStore
 import io.github.altenhofen.pen.settings.MotorSettings
 import io.github.altenhofen.pen.settings.MotorSettingsStore
-import io.github.altenhofen.pen.ui.CalibrationScreen
-import io.github.altenhofen.pen.ui.CharacterFineTuneScreen
+import io.github.altenhofen.pen.ui.CalibrationMinigameScreen
 import io.github.altenhofen.pen.ui.SettingsScreen
 import io.github.altenhofen.pen.ui.theme.PenTheme
 import kotlinx.coroutines.Dispatchers
@@ -34,8 +36,14 @@ import kotlinx.coroutines.withContext
 
 private enum class LauncherScreen {
     Settings,
-    Calibrate89,
-    FineTuneAlphabet,
+    Calibrate,
+}
+
+internal enum class ProfileTransferStatus(@param:StringRes val messageRes: Int) {
+    Exported(R.string.transfer_exported),
+    ExportFailed(R.string.transfer_export_failed),
+    Imported(R.string.transfer_imported),
+    ImportFailed(R.string.transfer_import_failed),
 }
 
 class MainActivity : ComponentActivity() {
@@ -44,7 +52,7 @@ class MainActivity : ComponentActivity() {
     private val transfer by lazy {
         ProfileTransfer(settingsStore, PrototypeStore.open(applicationContext), contentResolver)
     }
-    private val transferStatus = MutableStateFlow<String?>(null)
+    private val transferStatus = MutableStateFlow<ProfileTransferStatus?>(null)
 
     private val exportDocument = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/zip"),
@@ -69,20 +77,16 @@ class MainActivity : ComponentActivity() {
                         LauncherScreen.Settings -> SettingsScreen(
                             current = current,
                             onUpdate = { transform -> scope.launch { settingsStore.update(transform) } },
-                            onCalibrate = { screen = LauncherScreen.Calibrate89 },
-                            onFineTune = { screen = LauncherScreen.FineTuneAlphabet },
+                            onCalibrate = { screen = LauncherScreen.Calibrate },
+                            onSetDefaultKeyboard = {
+                                startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+                            },
                             onExport = { exportDocument.launch("pen-configuration.zip") },
                             onImport = { importDocument.launch(arrayOf("application/zip", "*/*")) },
-                            status = status,
+                            status = status?.let { getString(it.messageRes) },
                             modifier = Modifier.padding(innerPadding),
                         )
-                        LauncherScreen.Calibrate89 -> CalibrationScreen(
-                            recognizer = recognizer,
-                            capture = current.capture(),
-                            onDone = { screen = LauncherScreen.Settings },
-                            modifier = Modifier.padding(innerPadding),
-                        )
-                        LauncherScreen.FineTuneAlphabet -> CharacterFineTuneScreen(
+                        LauncherScreen.Calibrate -> CalibrationMinigameScreen(
                             recognizer = recognizer,
                             capture = current.capture(),
                             onDone = { screen = LauncherScreen.Settings },
@@ -97,29 +101,27 @@ class MainActivity : ComponentActivity() {
     private fun handleExport(uri: Uri?) {
         if (uri == null) return
         lifecycleScope.launch {
-            val status = withContext(Dispatchers.IO) {
+            transferStatus.value = withContext(Dispatchers.IO) {
                 runCatching { transfer.exportTo(uri) }.fold(
-                    onSuccess = { "Exported" },
-                    onFailure = { "Export failed" },
+                    onSuccess = { ProfileTransferStatus.Exported },
+                    onFailure = { ProfileTransferStatus.ExportFailed },
                 )
             }
-            transferStatus.value = status
         }
     }
 
     private fun handleImport(uri: Uri?) {
         if (uri == null) return
         lifecycleScope.launch {
-            val status = withContext(Dispatchers.IO) {
+            transferStatus.value = withContext(Dispatchers.IO) {
                 runCatching {
                     transfer.importFrom(uri)
                     recognizer.reload()
                 }.fold(
-                    onSuccess = { "Imported" },
-                    onFailure = { "Import failed" },
+                    onSuccess = { ProfileTransferStatus.Imported },
+                    onFailure = { ProfileTransferStatus.ImportFailed },
                 )
             }
-            transferStatus.value = status
         }
     }
 }

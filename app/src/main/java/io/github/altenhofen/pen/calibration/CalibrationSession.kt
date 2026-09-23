@@ -4,12 +4,11 @@ import io.github.altenhofen.pen.ime.Stroke
 import io.github.altenhofen.pen.recognition.ClusterId
 import io.github.altenhofen.pen.recognition.FeatureVector
 import io.github.altenhofen.pen.recognition.PrototypeCluster
-import io.github.altenhofen.pen.recognition.bandedDtw
 import io.github.altenhofen.pen.recognition.featuresFromStrokes
 import java.util.UUID
 
-sealed interface CalibrationEvent {
-    data object NeedMoreSamples : CalibrationEvent
+internal sealed interface CalibrationEvent {
+    data object Recorded : CalibrationEvent
     data object ReadyToCommit : CalibrationEvent
     data object Ignored : CalibrationEvent
 }
@@ -22,60 +21,84 @@ internal data class CalibrationPayload(
 internal class CalibrationSession private constructor(
     val sessionId: String,
     val labels: List<Char>,
-    val samplesPerLabel: Int,
-    private val oneClusterPerSample: Boolean,
 ) {
-    private val samples: Map<Char, MutableList<FeatureVector>> = labels.associateWith { ArrayList(samplesPerLabel) }
+    private val samples: Map<Char, MutableList<FeatureVector>> = labels.associateWith { ArrayList() }
+    private var activeIndex = 0
+    private var finished = false
 
     val currentLabel: Char?
-        get() = labels.firstOrNull { samples.getValue(it).size < samplesPerLabel }
+        get() = if (finished) null else labels[activeIndex]
 
-    val progress: Pair<Int, Int>
-        get() = (currentLabel?.let { samples.getValue(it).size } ?: samplesPerLabel) to samplesPerLabel
+    val sampleCount: Int
+        get() = currentLabel?.let { samples.getValue(it).size } ?: 0
 
-    fun recordSettled(strokes: List<Stroke>): CalibrationEvent {
+    val canAdvance: Boolean
+        get() = currentLabel != null && samples.getValue(currentLabel!!).isNotEmpty()
+
+    fun recordInk(strokes: List<Stroke>): CalibrationEvent {
         val label = currentLabel ?: return CalibrationEvent.Ignored
-        val sample = featuresFromStrokes(strokes) ?: return CalibrationEvent.Ignored
-        samples.getValue(label).add(sample)
-        return if (currentLabel == null) CalibrationEvent.ReadyToCommit else CalibrationEvent.NeedMoreSamples
+        var recorded = false
+        for (glyph in partitionGlyphs(strokes)) {
+            val sample = featuresFromStrokes(glyph) ?: continue
+            samples.getValue(label).add(sample)
+            recorded = true
+        }
+        return if (recorded) CalibrationEvent.Recorded else CalibrationEvent.Ignored
+    }
+
+    fun advanceToNextLabel(): CalibrationEvent {
+        if (!canAdvance) return CalibrationEvent.Ignored
+        if (activeIndex == labels.lastIndex) {
+            finished = true
+            return CalibrationEvent.ReadyToCommit
+        }
+        activeIndex++
+        return CalibrationEvent.Recorded
     }
 
     fun payload(): CalibrationPayload {
-        check(currentLabel == null) { "payload before every label has $samplesPerLabel samples" }
-        val clusters = if (oneClusterPerSample) {
+        check(finished) { "payload before every label has samples and the last Next" }
+        return CalibrationPayload(
+            sessionId,
             labels.flatMap { label ->
                 samples.getValue(label).mapIndexed { index, vector ->
-                    PrototypeCluster(ClusterId.userTraining(sessionId, label, index), label, vector)
+                    PrototypeCluster(ClusterId.training(label, index), label, vector)
                 }
-            }
-        } else {
-            labels.map { label ->
-                PrototypeCluster(ClusterId.calibration(sessionId, label), label, medoid(samples.getValue(label)))
-            }
-        }
-        return CalibrationPayload(sessionId, clusters)
+            },
+        )
     }
 
     companion object {
-        fun begin(
-            labels: List<Char>,
-            samplesPerLabel: Int = 5,
-            oneClusterPerSample: Boolean = false,
-        ): CalibrationSession {
+        fun begin(labels: List<Char>): CalibrationSession {
             require(labels.isNotEmpty() && labels.distinct().size == labels.size)
-            require(samplesPerLabel >= 1)
-            return CalibrationSession(
-                UUID.randomUUID().toString(),
-                labels,
-                samplesPerLabel,
-                oneClusterPerSample,
-            )
+            return CalibrationSession(UUID.randomUUID().toString(), labels)
         }
     }
 }
 
-/** Digits and lowercase letters seeded in phase 2; same set users fine-tune in phase 5. */
-val FineTuneAlphabet: List<Char> = ('0'..'9').toList() + ('a'..'z').toList()
+internal fun partitionGlyphs(strokes: List<Stroke>, gapPx: Float = 48f): List<List<Stroke>> {
+    val boxes = strokes.mapNotNull { stroke ->
+        val points = stroke.points()
+        if (points.isEmpty()) null
+        else StrokeBox(
+            stroke,
+            points.minOf { it.x },
+            points.maxOf { it.x },
+        )
+    }.sortedBy { it.minX }
+    if (boxes.isEmpty()) return emptyList()
+    val groups = mutableListOf(mutableListOf(boxes.first()))
+    for (i in 1 until boxes.size) {
+        val current = boxes[i]
+        val group = groups.last()
+        val prevMaxX = group.maxOf { it.maxX }
+        if (current.minX > prevMaxX + gapPx) {
+            groups.add(mutableListOf(current))
+        } else {
+            group.add(current)
+        }
+    }
+    return groups.map { group -> group.map { it.stroke } }
+}
 
-private fun medoid(vectors: List<FeatureVector>): FeatureVector =
-    vectors.minBy { candidate -> vectors.sumOf { bandedDtw(candidate, it).toDouble() } }
+private data class StrokeBox(val stroke: Stroke, val minX: Float, val maxX: Float)

@@ -7,9 +7,7 @@ value class ClusterId(val value: String) {
     companion object {
         fun seed(label: Char) = ClusterId("seed:$label")
         fun legacy(label: Char) = ClusterId("legacy:$label")
-        fun calibration(sessionId: String, label: Char) = ClusterId("cal:$sessionId:$label")
-        fun userTraining(sessionId: String, label: Char, index: Int) =
-            ClusterId("user:$sessionId:$label:$index")
+        fun training(label: Char, index: Int = 0) = ClusterId("train:$label:$index")
     }
 }
 

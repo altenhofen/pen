@@ -10,17 +10,17 @@ export PATH="$ANDROID_HOME/platform-tools:$PATH"
 "$(dirname "$0")/doctor.sh"
 mkdir -p "$OUT"
 
-adb -s "$SERIAL" shell am force-stop io.github.altenhofen.pen
 set +e
-start_out="$(adb -s "$SERIAL" shell am start -n io.github.altenhofen.pen/.MainActivity 2>&1)"
+start_out="$(adb -s "$SERIAL" shell am start -n io.github.altenhofen.pen/.MainActivity -f 0x10008000 2>&1)"
 start_code=$?
 set -e
 {
-  echo "command: adb -s $SERIAL shell am start -n io.github.altenhofen.pen/.MainActivity"
+  echo "command: adb -s $SERIAL shell am start -n io.github.altenhofen.pen/.MainActivity -f 0x10008000"
   echo "exit: $start_code"
   printf '%s\n' "$start_out"
 } >"$OUT/drive.log"
 [[ "$start_code" -eq 0 ]]
+sleep 1
 
 dump=""
 for _ in $(seq 1 20); do

@@ -1,84 +1,129 @@
 package io.github.altenhofen.pen.calibration
 
+import io.github.altenhofen.pen.ime.Stroke
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
 import io.github.altenhofen.pen.recognition.ClusterRow
-import io.github.altenhofen.pen.recognition.Feedback
 import io.github.altenhofen.pen.recognition.PrototypeDao
 import io.github.altenhofen.pen.recognition.PrototypeStore
-import io.github.altenhofen.pen.recognition.featuresFromStrokes
 import io.github.altenhofen.pen.recognition.seedStrokes
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CalibrationSessionTest {
     @Test
-    fun fiveSamplesPerLabelCommitOneClusterPerLabelOnce() {
-        val session = CalibrationSession.begin(listOf('8', '9'), samplesPerLabel = 5)
-        val events = (1..5).map { session.recordSettled(seedStrokes('8', jitter = it * 0.05f)) } +
-            (1..5).map { session.recordSettled(seedStrokes('9', jitter = it * 0.05f)) }
-        assertEquals(List(9) { CalibrationEvent.NeedMoreSamples } + CalibrationEvent.ReadyToCommit, events)
-        assertEquals(CalibrationEvent.Ignored, session.recordSettled(seedStrokes('9')))
-
-        val dao = InMemoryPrototypeDao()
-        val store = PrototypeStore(dao)
-        val recognizer = AdaptiveRecognizer(store)
-        recognizer.commitCalibration(session.payload())
-
-        val expectedIds = listOf("cal:${session.sessionId}:8", "cal:${session.sessionId}:9")
-        assertEquals(expectedIds, dao.calibrationIds())
-        assertEquals(38, dao.all().size)
-
-        recognizer.reload()
-        val sample = requireNotNull(featuresFromStrokes(seedStrokes('9', jitter = 0.1f)))
-        val adapted = store.adapt(
-            requireNotNull(recognizer.recognize(seedStrokes('9', jitter = 0.1f), 0.15f)).winner.clusterId,
-            sample,
-            Feedback.Accepted,
-        )
-        assertEquals("cal:${session.sessionId}:9", adapted.id.value)
-        val afterAdapt = dao.all().map { it.packed.toList() }
-
-        recognizer.commitCalibration(session.payload())
-
-        assertEquals(expectedIds, dao.calibrationIds())
-        assertEquals(38, dao.all().size)
-        assertEquals(afterAdapt, dao.all().map { it.packed.toList() })
+    fun nextNeedsAtLeastOneSample() {
+        val session = CalibrationSession.begin(listOf('A', 'B'))
+        assertFalse(session.canAdvance)
+        assertEquals(CalibrationEvent.Ignored, session.advanceToNextLabel())
+        assertEquals(CalibrationEvent.Recorded, session.recordInk(strokesFor('A')))
+        assertEquals(1, session.sampleCount)
+        assertEquals('A', session.currentLabel)
     }
 
     @Test
-    fun userTrainingStoresOneClusterPerSample() {
-        val session = CalibrationSession.begin(listOf('a', 'b'), samplesPerLabel = 2, oneClusterPerSample = true)
-        repeat(2) { session.recordSettled(seedStrokes('a', jitter = it * 0.05f)) }
-        repeat(2) { session.recordSettled(seedStrokes('b', jitter = it * 0.05f)) }
+    fun variableSamplesStayOnLabelUntilNext() {
+        val session = CalibrationSession.begin(listOf('A', 'B'))
+        repeat(4) {
+            session.recordInk(strokesFor('A', jitter = it * 0.05f))
+        }
+        assertEquals(4, session.sampleCount)
+        assertEquals('A', session.currentLabel)
+        assertEquals(CalibrationEvent.Recorded, session.advanceToNextLabel())
+        assertEquals('B', session.currentLabel)
+        assertEquals(0, session.sampleCount)
+    }
+
+    @Test
+    fun lastNextIsReadyToCommit() {
+        val session = CalibrationSession.begin(listOf('A', 'B'))
+        session.recordInk(strokesFor('A'))
+        session.advanceToNextLabel()
+        session.recordInk(strokesFor('B'))
+        assertEquals(CalibrationEvent.ReadyToCommit, session.advanceToNextLabel())
+        assertEquals(null, session.currentLabel)
+    }
+
+    @Test
+    fun payloadKeepsOneClusterPerExperiment() {
+        val session = CalibrationSession.begin(listOf('A'))
+        session.recordInk(strokesFor('A', jitter = 0.05f))
+        session.recordInk(strokesFor('A', jitter = 0.12f))
+        session.advanceToNextLabel()
+        assertEquals(
+            listOf("train:A:0", "train:A:1"),
+            session.payload().clusters.map { it.id.value },
+        )
+    }
+
+    @Test
+    fun secondCommitReplacesPriorExperiments() {
+        val first = CalibrationSession.begin(listOf('A'))
+        repeat(3) { first.recordInk(strokesFor('A', jitter = (it + 1) * 0.05f)) }
+        first.advanceToNextLabel()
 
         val dao = InMemoryPrototypeDao()
-        val store = PrototypeStore(dao)
-        AdaptiveRecognizer(store).commitUserTraining(session.payload())
+        val recognizer = AdaptiveRecognizer(PrototypeStore(dao))
+        recognizer.commitTraining(first.payload())
+        assertEquals(listOf("train:A:0", "train:A:1", "train:A:2"), dao.trainingIds())
 
-        val ids = dao.all().map { it.clusterId }.filter { it.startsWith("user:") }.sorted()
-        assertEquals(
-            listOf(
-                "user:${session.sessionId}:a:0",
-                "user:${session.sessionId}:a:1",
-                "user:${session.sessionId}:b:0",
-                "user:${session.sessionId}:b:1",
-            ),
-            ids,
-        )
-        assertEquals(40, dao.all().size)
+        val second = CalibrationSession.begin(listOf('A'))
+        second.recordInk(strokesFor('A', jitter = 0.2f))
+        second.advanceToNextLabel()
+        recognizer.commitTraining(second.payload())
+        assertEquals(listOf("train:A:0"), dao.trainingIds())
+        assertEquals(37, dao.all().size)
+    }
+
+    @Test
+    fun partitionSplitsSideBySideInk() {
+        val left = offset(strokesFor('0'), dx = 10f)
+        val right = offset(strokesFor('0'), dx = 400f)
+        val parts = partitionGlyphs(left + right)
+        assertEquals(2, parts.size)
     }
 }
+
+class SelectedGlyphsTest {
+    @Test
+    fun emptySetIsNull() {
+        assertEquals(null, SelectedGlyphs.of(emptySet()))
+    }
+
+    @Test
+    fun mixedSetFollowsAllOrder() {
+        assertEquals(listOf('0', 'A', 'z'), SelectedGlyphs.of(setOf('z', '0', 'A'))?.labels)
+    }
+}
+
+class CalibrationMinigameTest {
+    @Test
+    fun startWithEmptySelectionStaysPicking() {
+        val game = CalibrationMinigame()
+        game.start()
+        assertTrue(game.phase() is GlyphCalibrationPhase.PickGlyphs)
+    }
+}
+
+private fun strokesFor(label: Char, jitter: Float = 0f) =
+    seedStrokes(if (label.isUpperCase()) label.lowercaseChar() else label, jitter)
+
+private fun offset(strokes: List<Stroke>, dx: Float): List<Stroke> =
+    strokes.map { source ->
+        Stroke().also { copy ->
+            source.points().forEach { copy.append(it.x + dx, it.y) }
+        }
+    }
 
 private class InMemoryPrototypeDao : PrototypeDao() {
     private val rows = LinkedHashMap<String, ClusterRow>()
 
     override fun all(): List<ClusterRow> = rows.values.toList()
 
-    fun calibrationIds(): List<String> = rows.keys.filter { it.startsWith("cal:") }
+    fun trainingIds(): List<String> = rows.keys.filter { it.startsWith("train:") }.sorted()
 
     override fun find(clusterId: String): ClusterRow? = rows[clusterId]
-
-    override fun countExisting(clusterIds: List<String>): Int = clusterIds.count { it in rows }
 
     override fun upsert(rows: List<ClusterRow>) {
         rows.forEach { this.rows[it.clusterId] = it }
@@ -86,5 +131,10 @@ private class InMemoryPrototypeDao : PrototypeDao() {
 
     override fun deleteAll() {
         rows.clear()
+    }
+
+    override fun deleteMatching(exact: String, like: String) {
+        val prefix = like.removeSuffix("%")
+        rows.keys.filter { it == exact || it.startsWith(prefix) }.forEach { rows.remove(it) }
     }
 }
