@@ -52,10 +52,8 @@ x1, y1, x2, y2 = map(int, m.groups())
 print((x1 + x2) // 2, (y1 + y2) // 2)
 ')"
 echo "tap: $tap" >>"$OUT/drive.log"
-sleep 2
-adb -s "$SERIAL" shell input tap $tap
-
 for _ in $(seq 1 20); do
+  adb -s "$SERIAL" shell input tap $tap
   if adb -s "$SERIAL" exec-out uiautomator dump /dev/tty >"$OUT/hierarchy.xml" 2>/dev/null; then
     if grep -q 'text="Draw 8: 0 of 5 samples collected"' "$OUT/hierarchy.xml"; then
       break

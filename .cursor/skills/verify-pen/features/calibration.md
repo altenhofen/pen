@@ -24,7 +24,7 @@ Preconditions:
 
 ## Gotchas
 
-- Tap the clickable parent of `Calibrate 8 and 9`, not only the text bounds. A tap issued before Compose has settled after `am start` can miss. The drive script waits, then taps.
+- Tap the clickable parent of `Calibrate 8 and 9`, not only the text bounds. `drive-calibration.sh` taps that point until the dump contains `text="Draw 8: 0 of 5 samples collected"`. A single tap can miss.
 - Finger strokes work on this canvas. The IME canvas still rejects fingers.
 - The training canvas uses the cream ink background. Proof is the hierarchy text, not whether the heading is easy to see in a screenshot.
 - This screen is not the IME. Do not look for `pen ink` here.
