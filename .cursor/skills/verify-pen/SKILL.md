@@ -1,11 +1,11 @@
 ---
 name: verify-pen
-description: Drive the pen Android app on a dedicated emulator and prove the launcher greeting and the pen ink keyboard list entry. Use when changing MainActivity, the Compose greeting, the input method, or any user-visible launcher behavior, and before claiming those screens work.
+description: Drive the pen Android app on a dedicated emulator and prove the launcher settings, the 8 versus 9 calibration screen, and the pen ink keyboard list entry. Use when changing MainActivity, settings, calibration, the input method, or any user-visible launcher behavior, and before claiming those screens work.
 ---
 
 # Verify pen
 
-`pen` is an Android app (`io.github.altenhofen.pen`). The launcher activity draws the text `Hello Android!`. The same package registers an input method the system lists as `pen ink` under on-screen keyboards. The ink canvas is not on the launcher screen. It appears only after the user enables that input method and focuses a text field in some app. Unit and instrumented tests exist. They are not a user path.
+`pen` is an Android app (`io.github.altenhofen.pen`). The launcher activity shows `Pen settings` with settle, stroke width, and ambiguity sliders plus `Calibrate 8 and 9`. That button opens a training canvas. The same package registers an input method the system lists as `pen ink` under on-screen keyboards. The IME ink canvas is not on the launcher. It appears only after the user enables that input method and focuses a text field in some other app. Unit and instrumented tests exist. They are not a user path.
 
 ## Launch
 
@@ -21,7 +21,7 @@ Ready means all of the following.
 
 - `adb -s emulator-5556 shell getprop sys.boot_completed` prints `1`.
 - `adb -s emulator-5556 shell pidof io.github.altenhofen.pen` prints a pid.
-- A UI dump contains the text `Hello Android!`.
+- A UI dump contains the text `Pen settings`.
 
 The script writes `/tmp/pen-verify/emulator.pid` and `/tmp/pen-verify/serial`. Gradle uses `JAVA_HOME=/opt/android-studio-canary/jbr` and `sdk.dir` from `local.properties` (`/home/altenhofen/Android/Sdk`). The debug APK is `app/build/outputs/apk/debug/app-debug.apk`.
 
@@ -35,15 +35,23 @@ Read-only. Exit `0` only when the serial is `emulator-5556`, `sys.boot_completed
 
 ## Drive
 
-Harness is `adb` on `emulator-5556`. Stable handle is the visible text `Hello Android!` from `Greeting` in `MainActivity`. There are no content descriptions or test tags.
+Harness is `adb` on `emulator-5556`. Stable handles are the visible strings `Pen settings`, `Calibrate 8 and 9`, `Draw 8: 0 of 5 samples collected`, and `pen ink`. There are no content descriptions or test tags.
 
 ```bash
-.cursor/skills/verify-pen/scripts/drive-greeting.sh
+.cursor/skills/verify-pen/scripts/drive-settings.sh
 ```
 
-The script force-stops the app, starts `io.github.altenhofen.pen/.MainActivity` with `am start -n`, dumps the hierarchy, and screenshots. Proof is the dump containing `text="Hello Android!"` after that start, plus the screenshot.
+The script force-stops the app, starts `io.github.altenhofen.pen/.MainActivity` with `am start -n`, dumps the hierarchy, and screenshots. Proof is the dump containing `text="Pen settings"` after that start, plus the screenshot.
 
-The keyboard list is a second drive.
+Calibration is a second drive from the same activity.
+
+```bash
+.cursor/skills/verify-pen/scripts/drive-calibration.sh
+```
+
+Proof is the dump containing `text="Draw 8: 0 of 5 samples collected"` after a tap on `Calibrate 8 and 9`, plus the screenshot.
+
+The keyboard list is a third drive.
 
 ```bash
 .cursor/skills/verify-pen/scripts/drive-ink-keyboard.sh
@@ -51,7 +59,7 @@ The keyboard list is a second drive.
 
 Proof is the dump containing `text="pen ink"` after `android.settings.INPUT_METHOD_SETTINGS`, plus the screenshot.
 
-Do not call Compose test APIs or `setContent` as a substitute. Do not treat `docs/PRD.md` controls as present.
+Do not call Compose test APIs or `setContent` as a substitute. Do not treat `docs/PRD.md` controls as present unless the matching feature file lists them.
 
 ## Evidence
 
@@ -59,9 +67,9 @@ Artifacts stay in `.cursor/skills/verify-pen/artifacts/<feature-id>/`.
 
 - `hierarchy.xml` is the UI dump taken after the user action.
 - `screen.png` is the framebuffer after the same action.
-- `drive.log` records the `am start` command, its stdout, and its exit code.
+- `drive.log` records the `am start` or tap command, its stdout, and its exit code.
 
-A proof shows the action and the resulting state. For the greeting, the action is launching the activity. The resulting state is the text node `Hello Android!` in `hierarchy.xml` and the same words in `screen.png`.
+A proof shows the action and the resulting state. For settings, the action is launching the activity. The resulting state is the text node `Pen settings` in `hierarchy.xml`.
 
 ## Cleanup
 
@@ -75,8 +83,9 @@ Kills the emulator pid stored in `/tmp/pen-verify/emulator.pid`, then `adb -s em
 
 | Script | Role |
 | --- | --- |
-| `scripts/launch.sh` | Boot `emulator-5556`, install the debug APK, start `MainActivity`, wait until `Hello Android!` is in the hierarchy. |
+| `scripts/launch.sh` | Boot `emulator-5556`, install the debug APK, start `MainActivity`, wait until `Pen settings` is in the hierarchy. |
 | `scripts/doctor.sh` | Check serial, boot, package, and `versionName=1.0`. |
-| `scripts/drive-greeting.sh` | Relaunch `MainActivity` and write proof under `artifacts/greeting/`. |
+| `scripts/drive-settings.sh` | Relaunch `MainActivity` and write proof under `artifacts/settings/`. |
+| `scripts/drive-calibration.sh` | Open calibration from settings and write proof under `artifacts/calibration/`. |
 | `scripts/drive-ink-keyboard.sh` | Open on-screen keyboard settings and write proof under `artifacts/ink-keyboard/`. |
 | `scripts/cleanup.sh` | Stop the emulator this run started. Keep artifacts. |

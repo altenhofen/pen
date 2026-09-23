@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 SERIAL="emulator-5556"
-OUT="$ROOT/.cursor/skills/verify-pen/artifacts/greeting"
+OUT="$ROOT/.cursor/skills/verify-pen/artifacts/settings"
 export ANDROID_HOME="${ANDROID_HOME:-/home/altenhofen/Android/Sdk}"
 export PATH="$ANDROID_HOME/platform-tools:$PATH"
 
@@ -24,12 +24,16 @@ set -e
 
 for _ in $(seq 1 20); do
   if adb -s "$SERIAL" exec-out uiautomator dump /dev/tty >"$OUT/hierarchy.xml" 2>/dev/null; then
-    if grep -q 'text="Hello Android!"' "$OUT/hierarchy.xml"; then
+    if grep -q 'text="Pen settings"' "$OUT/hierarchy.xml"; then
       break
     fi
   fi
   sleep 1
 done
-grep -q 'text="Hello Android!"' "$OUT/hierarchy.xml"
+grep -q 'text="Pen settings"' "$OUT/hierarchy.xml"
+grep -q 'Settle window' "$OUT/hierarchy.xml"
+grep -q 'Stroke width' "$OUT/hierarchy.xml"
+grep -q 'Ambiguity threshold' "$OUT/hierarchy.xml"
+grep -q 'text="Calibrate 8 and 9"' "$OUT/hierarchy.xml"
 adb -s "$SERIAL" exec-out screencap -p >"$OUT/screen.png"
 echo "proof: $OUT"

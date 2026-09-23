@@ -41,11 +41,11 @@ adb -s "$SERIAL" shell am start -n io.github.altenhofen.pen/.MainActivity
 
 for _ in $(seq 1 20); do
   dump="$(adb -s "$SERIAL" exec-out uiautomator dump /dev/tty 2>/dev/null || true)"
-  if printf '%s' "$dump" | grep -q 'text="Hello Android!"'; then
-    echo "ready: $SERIAL shows Hello Android!"
+  if printf '%s' "$dump" | grep -q 'text="Pen settings"'; then
+    echo "ready: $SERIAL shows Pen settings"
     exit 0
   fi
   sleep 1
 done
-echo "launch failed: Hello Android! not in hierarchy" >&2
+echo "launch failed: Pen settings not in hierarchy" >&2
 exit 1
