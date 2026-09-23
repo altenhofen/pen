@@ -29,6 +29,7 @@ class PenInputMethodService : InputMethodService() {
     private var activeSettings: MotorSettings = MotorSettings.Default
     private var keyboard: InkKeyboardView? = null
     private val pending = PendingCommit()
+    private var learning = LearningPolicy.Private
     private var pendingAt: Long = 0L
     private var committed: String? = null
     private var glyphGeneration = 0
@@ -100,7 +101,7 @@ class PenInputMethodService : InputMethodService() {
     }
 
     private fun resolve(resolution: Resolution?) {
-        resolution ?: return
+        if (resolution == null || learning == LearningPolicy.Private) return
         val glyph = resolution.glyph
         val feedback = resolution.glyphFeedback
         if (glyph != null && feedback != null) recognizer.feedback(glyph, feedback)
@@ -153,6 +154,7 @@ class PenInputMethodService : InputMethodService() {
         keyboard?.showSuggestions(emptyList(), null)
         committed = null
         pending.discard()
+        learning = LearningPolicy.of(info?.inputType ?: 0, info?.imeOptions ?: 0)
         recognizer.reload()
         words = wordStore.load()
         inkModel.ensureReady()
