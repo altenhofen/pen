@@ -52,7 +52,12 @@ class InkKeyboardView(
         }
         addView(keys, LayoutParams(LayoutParams.MATCH_PARENT, dp(56)))
         ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
-            view.setPadding(0, 0, 0, insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom)
+            val bottom = insets.getInsets(
+                WindowInsetsCompat.Type.navigationBars() or
+                    WindowInsetsCompat.Type.mandatorySystemGestures() or
+                    WindowInsetsCompat.Type.tappableElement(),
+            ).bottom
+            view.setPadding(0, 0, 0, if (bottom > 0) bottom + dp(KEY_GAP_DP) else 0)
             insets
         }
     }
@@ -119,6 +124,7 @@ class InkKeyboardView(
 
     private companion object {
         const val REPEAT_MS = 60L
+        const val KEY_GAP_DP = 6
         const val SURFACE = 0xFFECE8E1.toInt()
         const val KEY = 0xFFF7F4EF.toInt()
         const val INK = 0xFF1A1A1A.toInt()
