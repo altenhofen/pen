@@ -5,7 +5,7 @@ description: Drive the pen Android app on a dedicated emulator and prove the lau
 
 # Verify pen
 
-`pen` is an Android app (`io.github.altenhofen.pen`). The launcher activity shows `Pen settings` with settle, stroke width, and ambiguity sliders plus `Calibrate`, `Set as default keyboard`, `Export profile`, and `Import profile`. Calibrate opens a glyph picker, then a training canvas. Export and import open system document sheets. Set as default keyboard opens system input-method settings. The same package registers an input method the system lists as `pen ink` under on-screen keyboards. The IME ink canvas is not on the launcher. It appears only after the user enables that input method and focuses a text field in some other app. Unit and instrumented tests exist. They are not a user path.
+`pen` is an Android app (`io.github.altenhofen.pen`). The launcher activity shows `Pen settings` with settle, stroke width, and ambiguity sliders, a `Finger and passive pen` switch, plus `Calibrate`, `Set as default keyboard`, `Export profile`, and `Import profile`. Calibrate opens a glyph picker, then a training canvas. Export and import open system document sheets. Set as default keyboard opens system input-method settings. The same package registers an input method the system lists as `pen ink` under on-screen keyboards. The IME ink canvas is not on the launcher. It appears only after the user enables that input method and focuses a text field in some other app. Unit and instrumented tests exist. They are not a user path.
 
 ## Launch
 
@@ -35,7 +35,7 @@ Read-only. Exit `0` only when the serial is `emulator-5556`, `sys.boot_completed
 
 ## Drive
 
-Harness is `adb` on `emulator-5556`. Stable handles are the visible strings `Pen settings`, `Calibrate`, `Set as default keyboard`, `Export profile`, `Import profile`, `Select characters to train`, `Start`, `Now writing 0`, `pen-configuration.zip`, and `pen ink`. There are no content descriptions or test tags. Drive against English `values/strings.xml`. `app_name` and `ime_name` are not translated.
+Harness is `adb` on `emulator-5556`. Stable handles are the visible strings `Pen settings`, `Finger and passive pen`, `Calibrate`, `Set as default keyboard`, `Export profile`, `Import profile`, `Select characters to train`, `Start`, `Now writing 0`, `pen-configuration.zip`, and `pen ink`. There are no content descriptions or test tags. Drive against English `values/strings.xml`. `app_name` and `ime_name` are not translated.
 
 ```bash
 .cursor/skills/verify-pen/scripts/drive-settings.sh
