@@ -16,6 +16,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -27,6 +28,7 @@ import io.github.altenhofen.pen.profile.ProfileTransferException
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
 import io.github.altenhofen.pen.recognition.PrototypeStore
 import io.github.altenhofen.pen.recognition.WordMemoryStore
+import io.github.altenhofen.pen.settings.AppLocales
 import io.github.altenhofen.pen.settings.MotorSettings
 import io.github.altenhofen.pen.settings.MotorSettingsStore
 import io.github.altenhofen.pen.ui.CalibrationMinigameScreen
@@ -86,6 +88,7 @@ class MainActivity : AppCompatActivity() {
                 val passphrase by passphraseRequest.collectAsState()
                 val scope = rememberCoroutineScope()
                 var screen by rememberSaveable { mutableStateOf(LauncherScreen.Settings) }
+                var appLanguage by remember { mutableStateOf(AppLocales.current()) }
                 BackHandler(enabled = screen != LauncherScreen.Settings) { screen = LauncherScreen.Settings }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when (screen) {
@@ -101,6 +104,11 @@ class MainActivity : AppCompatActivity() {
                             passphraseRequest = passphrase,
                             onPassphrase = ::onPassphrase,
                             onPassphraseCancelled = { passphraseRequest.value = null },
+                            appLanguage = appLanguage,
+                            onAppLanguage = { language ->
+                                appLanguage = language
+                                AppLocales.choose(language)
+                            },
                             status = status?.let { getString(it.messageRes) },
                             modifier = Modifier.padding(innerPadding),
                         )
