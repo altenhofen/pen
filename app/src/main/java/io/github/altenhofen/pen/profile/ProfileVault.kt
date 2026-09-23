@@ -35,7 +35,10 @@ internal object ProfileVault {
     const val HEADER_BYTES = 38
     const val MAGIC_BYTES = 4
 
-    /** Tuned so deriving a key costs about a third of a second on the slowest device we measured. */
+    /**
+     * OWASP's 2023 floor for PBKDF2-HMAC-SHA256. Costs 1473 ms median on emulator-5556, which has
+     * no SHA-256 acceleration. Run PassphraseCostTest on a target device before changing it.
+     */
     const val ITERATIONS = 210_000
 
     private const val KDF_PBKDF2_HMAC_SHA256 = 1
