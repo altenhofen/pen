@@ -115,11 +115,16 @@ internal data class CustomWordRow(
     @PrimaryKey val word: String,
 )
 
-@Database(entities = [ClusterRow::class, WordSampleRow::class, CustomWordRow::class], version = 4, exportSchema = false)
+@Database(
+    entities = [ClusterRow::class, WordSampleRow::class, CustomWordRow::class, GestureClusterRow::class],
+    version = 5,
+    exportSchema = false,
+)
 internal abstract class PrototypeDatabase : RoomDatabase() {
     abstract fun prototypes(): PrototypeDao
     abstract fun words(): WordSampleDao
     abstract fun customWords(): CustomWordDao
+    abstract fun gestures(): GestureDao
 
     companion object {
         @Volatile
@@ -132,7 +137,10 @@ internal abstract class PrototypeDatabase : RoomDatabase() {
                     context.applicationContext,
                     PrototypeDatabase::class.java,
                     "prototypes.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).allowMainThreadQueries().build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .allowMainThreadQueries()
+                    .build()
+                    .also { instance = it }
             }
         }
     }
@@ -143,6 +151,29 @@ internal val MIGRATION_3_4 = object : Migration(3, 4) {
         db.execSQL("ALTER TABLE word_samples ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")
         db.execSQL("CREATE TABLE IF NOT EXISTS custom_words (word TEXT NOT NULL, PRIMARY KEY(word))")
     }
+}
+
+internal val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS custom_words (word TEXT NOT NULL, PRIMARY KEY(word))")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS gesture_clusters (" +
+                "cluster_id TEXT NOT NULL, action_id TEXT NOT NULL, packed BLOB NOT NULL, PRIMARY KEY(cluster_id))",
+        )
+        if (!db.hasColumn("word_samples", "pinned")) {
+            db.execSQL("ALTER TABLE word_samples ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+}
+
+private fun SupportSQLiteDatabase.hasColumn(table: String, column: String): Boolean {
+    query("PRAGMA table_info($table)").use { cursor ->
+        val nameIndex = cursor.getColumnIndex("name")
+        while (cursor.moveToNext()) {
+            if (cursor.getString(nameIndex) == column) return true
+        }
+    }
+    return false
 }
 
 internal val MIGRATION_2_3 = object : Migration(2, 3) {
@@ -254,14 +285,14 @@ internal class CustomWordStore(private val dao: CustomWordDao) {
     }
 }
 
-private fun FeatureVector.pack(): ByteArray {
+internal fun FeatureVector.pack(): ByteArray {
     val values = copyValues()
     val buffer = ByteBuffer.allocate(values.size * Float.SIZE_BYTES).order(ByteOrder.LITTLE_ENDIAN)
     values.forEach { buffer.putFloat(it) }
     return buffer.array()
 }
 
-private fun unpack(packed: ByteArray): FloatArray {
+internal fun unpack(packed: ByteArray): FloatArray {
     val buffer = ByteBuffer.wrap(packed).order(ByteOrder.LITTLE_ENDIAN)
     return FloatArray(packed.size / Float.SIZE_BYTES) { buffer.float }
 }

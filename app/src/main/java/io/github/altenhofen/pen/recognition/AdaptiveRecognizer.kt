@@ -2,21 +2,30 @@ package io.github.altenhofen.pen.recognition
 
 import android.content.Context
 import io.github.altenhofen.pen.calibration.CalibrationPayload
+import io.github.altenhofen.pen.calibration.GestureCalibrationPayload
 import io.github.altenhofen.pen.ime.Stroke
 
 internal class AdaptiveRecognizer(
     private val store: PrototypeStore,
+    private val gestureStore: GestureStore,
     metric: DistanceMetric = DistanceMetric.DTW,
 ) {
     private val recognizer = GlyphRecognizer(metric)
+    private val gestureRecognizer = GestureRecognizer(metric)
 
     fun reload() {
         recognizer.replaceAll(store.loadOrSeed())
+        gestureRecognizer.replaceAll(gestureStore.load())
     }
 
     fun recognize(strokes: List<Stroke>, ambiguityThreshold: Float): RecognitionResult? {
         val sample = featuresFromStrokes(strokes) ?: return null
         return recognizer.rank(sample, ambiguityThreshold)
+    }
+
+    fun recognizeGesture(strokes: List<Stroke>, ambiguityThreshold: Float): GestureRecognitionResult? {
+        val sample = featuresFromStrokes(strokes) ?: return null
+        return gestureRecognizer.rank(sample, ambiguityThreshold)
     }
 
     fun feedback(result: RecognitionResult, feedback: Feedback) {
@@ -29,7 +38,13 @@ internal class AdaptiveRecognizer(
         reload()
     }
 
+    fun commitGestureTraining(payload: GestureCalibrationPayload) {
+        gestureStore.commitTraining(payload)
+        reload()
+    }
+
     companion object {
-        fun open(context: Context): AdaptiveRecognizer = AdaptiveRecognizer(PrototypeStore.open(context))
+        fun open(context: Context): AdaptiveRecognizer =
+            AdaptiveRecognizer(PrototypeStore.open(context), GestureStore.open(context))
     }
 }

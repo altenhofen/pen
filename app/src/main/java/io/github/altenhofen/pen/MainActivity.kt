@@ -28,6 +28,7 @@ import io.github.altenhofen.pen.profile.ProfileTransfer
 import io.github.altenhofen.pen.profile.ProfileTransferException
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
 import io.github.altenhofen.pen.recognition.CustomWordStore
+import io.github.altenhofen.pen.recognition.GestureStore
 import io.github.altenhofen.pen.recognition.PrototypeStore
 import io.github.altenhofen.pen.recognition.WordMemory
 import io.github.altenhofen.pen.recognition.WordMemoryStore
@@ -75,6 +76,7 @@ class MainActivity : AppCompatActivity() {
             PrototypeStore.open(applicationContext),
             wordStore,
             customWordStore,
+            GestureStore.open(applicationContext),
             contentResolver,
         )
     }

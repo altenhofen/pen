@@ -1,5 +1,7 @@
 package io.github.altenhofen.pen.profile
 
+import io.github.altenhofen.pen.recognition.GestureAction
+import io.github.altenhofen.pen.recognition.GestureCluster
 import io.github.altenhofen.pen.recognition.ClusterId
 import io.github.altenhofen.pen.recognition.FEATURE_WIDTH
 import io.github.altenhofen.pen.recognition.FeatureVector
@@ -36,6 +38,10 @@ import kotlin.math.roundToInt
  *   f32[FEATURE_WIDTH] scales + i8 values
  * varint customWordCount
  *   text  word
+ * varint gestureCount
+ *   text  action id
+ *   text  cluster id
+ *   i8[sampleCount * FEATURE_WIDTH] quantized values
  * ```
  *
  * [decodeLegacyBody] reads the v3 body that still carried a discarded ambiguity threshold float.
@@ -78,6 +84,13 @@ internal object ProfileBinaryCodec {
 
         writer.varint(profile.customWords.size.toLong())
         profile.customWords.forEach { writer.text(it) }
+
+        writer.varint(profile.gestures.size.toLong())
+        profile.gestures.forEach { cluster ->
+            writer.text(cluster.action.id)
+            writer.text(cluster.id.value)
+            writer.quantized(cluster.vector)
+        }
         return out.toByteArray()
     }
 
@@ -128,14 +141,24 @@ internal object ProfileBinaryCodec {
             previousConfirmedAt = confirmedAt
             WordSample(id, word, reader.quantized(WORD_SAMPLE_COUNT), confirmedAt, pinned)
         }
-
         val customWords = if (legacyAmbiguity || !reader.hasRemaining()) {
             emptyList()
         } else {
             val customCount = reader.count("custom word count", WordMemory.TOTAL_CAP)
             List(customCount) { reader.text() }
         }
-        return PenProfile.create(settings, withRegeneratedSeeds(clusters), words, customWords)
+        val gestures = if (legacyAmbiguity || !reader.hasRemaining()) {
+            emptyList()
+        } else {
+            val gestureCount = reader.count("gesture count", PenProfile.MAX_GESTURE_CLUSTERS)
+            List(gestureCount) {
+                val action = GestureAction.fromId(reader.text())
+                    ?: throw ProfileTransferException("unknown gesture action")
+                val id = ClusterId(reader.text())
+                GestureCluster(id, action, reader.quantized(SAMPLE_COUNT))
+            }
+        }
+        return PenProfile.create(settings, withRegeneratedSeeds(clusters), words, customWords, gestures)
     }
 
     private fun handwritingTag(stored: String): String? = stored.ifEmpty { null }
