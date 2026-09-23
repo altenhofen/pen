@@ -35,7 +35,7 @@ Read-only. Exit `0` only when the serial is `emulator-5556`, `sys.boot_completed
 
 ## Drive
 
-Harness is `adb` on `emulator-5556`. Stable handles are the visible strings `Pen settings`, `Finger and passive pen`, `Calibrate`, `Gestures`, `Gesture actions`, `Set as default keyboard`, `Export profile`, `Import profile`, `Select characters to train`, `Start`, `Now writing 0`, `pen-configuration.zip`, and `pen ink`. There are no content descriptions or test tags. Drive against English `values/strings.xml`. `app_name` and `ime_name` are not translated.
+Harness is `adb` on `emulator-5556`. Stable handles are the visible strings `Pen settings`, `Finger and passive pen`, `My words`, `Calibrate`, `Gestures`, `Gesture actions`, `Set as default keyboard`, `Export profile`, `Import profile`, `Protect this export`, `Encrypt and save`, `Select characters to train`, `Select actions to train`, `Start`, `Now writing 0`, `pen-profile.penbak`, and `pen ink`. There are no content descriptions or test tags. Drive against English `values/strings.xml`. `app_name` and `ime_name` are not translated.
 
 ```bash
 .cursor/skills/verify-pen/scripts/drive-settings.sh
@@ -51,7 +51,15 @@ Calibration is a second drive from the same activity.
 
 Proof is the dump containing `text="Now writing 0"` after a tap on `Calibrate`, a tap on `0`, a tap on `Start`, and a 3 second motionless press on the canvas with no pen crash in `logcat -b crash`, plus the screenshot.
 
-Default keyboard is a third drive from settings.
+Gesture calibration is a third drive from settings.
+
+```bash
+.cursor/skills/verify-pen/scripts/drive-calibration-gestures.sh
+```
+
+Proof is the dump containing `text="Gesture actions"` and the full `Select actions to train` prompt after `Calibrate` and the `Gestures` tab, plus the screenshot.
+
+Default keyboard is a fourth drive from settings.
 
 ```bash
 .cursor/skills/verify-pen/scripts/drive-default-keyboard.sh
@@ -59,15 +67,15 @@ Default keyboard is a third drive from settings.
 
 Proof is the dump containing `text="pen ink"` after a tap on `Set as default keyboard`, plus the screenshot.
 
-Profile export is a fourth drive from settings.
+Profile export is a fifth drive from settings.
 
 ```bash
 .cursor/skills/verify-pen/scripts/drive-profile-export.sh
 ```
 
-Proof is the dump containing `text="pen-configuration.zip"` after a tap on `Export profile`, plus the screenshot.
+Proof is the dump containing `text="pen-profile.penbak"` on the save sheet after `Export profile`, the passphrase dialog, and `Encrypt and save`, plus the screenshot. Use `drive-profile-export.sh`, which performs those steps.
 
-Profile import is a fifth drive from settings.
+Profile import is a sixth drive from settings.
 
 ```bash
 .cursor/skills/verify-pen/scripts/drive-profile-import.sh
@@ -75,7 +83,7 @@ Profile import is a fifth drive from settings.
 
 Proof is the dump containing `package="com.google.android.documentsui"` after a tap on `Import profile`, plus the screenshot. The picker opens on the last folder used, so do not key on `Recent files`.
 
-The keyboard list is a sixth drive.
+The keyboard list is a seventh drive.
 
 ```bash
 .cursor/skills/verify-pen/scripts/drive-ink-keyboard.sh

@@ -1,6 +1,6 @@
 # Profile import
 
-Profile import is the restore path behind `Import profile` on Pen settings. Tapping the button opens the system open-document picker. Choosing a `pen-profile.penbak` or legacy zip asks for a passphrase when the file is encrypted. A successful import replaces motor settings, prototype clusters, and word memory. This screen is not the IME.
+Profile import is the restore path behind `Import profile` on Pen settings. Tapping the button opens the system open-document picker. Choosing a `pen-profile.penbak` or legacy zip asks for a passphrase when the file is encrypted. A successful import replaces motor settings, prototype clusters, word memory, the My words list, and trained gesture samples. This screen is not the IME.
 
 ## Sub-features
 

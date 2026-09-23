@@ -16,7 +16,7 @@ Gesture training lives on the `Gestures` tab inside `Calibrate` on Pen settings.
 Preconditions match calibration in `features/calibration.md`.
 
 - Run `.cursor/skills/verify-pen/scripts/drive-calibration-gestures.sh`.
-- Proof is `artifacts/gestures/hierarchy.xml` containing `text="Gesture actions"` and `text="Select actions to train"`.
+- Proof is `artifacts/gestures/hierarchy.xml` containing `text="Gesture actions"` and `text="Select actions to train. Each needs at least 5 drawings."`.
 
 ## Gotchas
 

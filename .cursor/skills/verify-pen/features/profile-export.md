@@ -1,6 +1,6 @@
 # Profile export
 
-Profile export is the share path behind `Export profile` on Pen settings. Tapping the button opens a passphrase dialog (`Protect this export`). After the user enters matching passphrases of at least 8 characters and taps `Encrypt and save`, the system save sheet opens with the suggested name `pen-profile.penbak`. Completing SAVE writes an encrypted format v3 archive. Legacy v1 and v2 zip imports still work from `Import profile`. This screen is not the IME.
+Profile export is the share path behind `Export profile` on Pen settings. Tapping the button opens a passphrase dialog (`Protect this export`). After the user enters matching passphrases of at least 8 characters and taps `Encrypt and save`, the system save sheet opens with the suggested name `pen-profile.penbak`. Completing SAVE writes an encrypted vault archive (format v4 body with custom words and gestures). Legacy v1 and v2 zip imports still work from `Import profile`. This screen is not the IME.
 
 ## Sub-features
 
