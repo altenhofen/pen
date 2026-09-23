@@ -83,4 +83,8 @@ private class InMemoryPrototypeDao : PrototypeDao() {
     override fun upsert(rows: List<ClusterRow>) {
         rows.forEach { this.rows[it.clusterId] = it }
     }
+
+    override fun deleteAll() {
+        rows.clear()
+    }
 }

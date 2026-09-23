@@ -24,6 +24,9 @@ fun SettingsScreen(
     onUpdate: ((MotorSettings) -> MotorSettings) -> Unit,
     onCalibrate: () -> Unit,
     onFineTune: () -> Unit,
+    onExport: () -> Unit,
+    onImport: () -> Unit,
+    status: String? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -54,6 +57,15 @@ fun SettingsScreen(
         }
         Button(onClick = onFineTune) {
             Text("Fine-tune 0-9 and a-z")
+        }
+        Button(onClick = onExport) {
+            Text("Export profile")
+        }
+        Button(onClick = onImport) {
+            Text("Import profile")
+        }
+        if (status != null) {
+            Text(status)
         }
     }
 }

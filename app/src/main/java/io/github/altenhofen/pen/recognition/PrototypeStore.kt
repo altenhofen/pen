@@ -39,9 +39,19 @@ internal abstract class PrototypeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract fun upsert(rows: List<ClusterRow>)
 
+    @Query("DELETE FROM prototype_clusters")
+    abstract fun deleteAll()
+
     @Transaction
     open fun insertUnlessAnyExists(rows: List<ClusterRow>) {
         if (countExisting(rows.map { it.clusterId }) == 0) upsert(rows)
+    }
+
+    @Transaction
+    open fun replaceAll(rows: List<ClusterRow>) {
+        require(rows.isNotEmpty()) { "replaceAll requires at least one cluster" }
+        deleteAll()
+        upsert(rows)
     }
 }
 
@@ -68,6 +78,11 @@ internal class PrototypeStore(private val dao: PrototypeDao) {
     fun loadOrSeed(): List<PrototypeCluster> {
         seedIfEmpty()
         return dao.all().map { it.toCluster() }
+    }
+
+    fun replaceAll(clusters: List<PrototypeCluster>) {
+        require(clusters.isNotEmpty()) { "replaceAll requires at least one cluster" }
+        dao.replaceAll(clusters.map { it.toRow() })
     }
 
     private fun seedIfEmpty() {

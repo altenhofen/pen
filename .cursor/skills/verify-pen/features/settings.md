@@ -1,6 +1,6 @@
 # Settings
 
-Settings is the first screen after the user opens pen. It shows the heading `Pen settings`, sliders for settle window, stroke width, and ambiguity threshold, a `Calibrate 8 and 9` button, and a `Fine-tune 0-9 and a-z` button.
+Settings is the first screen after the user opens pen. It shows the heading `Pen settings`, sliders for settle window, stroke width, and ambiguity threshold, a `Calibrate 8 and 9` button, a `Fine-tune 0-9 and a-z` button, an `Export profile` button, and an `Import profile` button.
 
 ## Sub-features
 
@@ -8,6 +8,8 @@ Settings is the first screen after the user opens pen. It shows the heading `Pen
 - `settings-sliders` shows `Settle window`, `Stroke width`, and `Ambiguity threshold` on that same screen.
 - `settings-calibrate-entry` shows the `Calibrate 8 and 9` button.
 - `settings-fine-tune-entry` shows the `Fine-tune 0-9 and a-z` button.
+- `settings-export-entry` shows the `Export profile` button.
+- `settings-import-entry` shows the `Import profile` button.
 
 ## How to get to it (user POV)
 
@@ -24,6 +26,7 @@ Preconditions:
 - **Open the app.** The user taps the `pen` launcher icon. Run `adb -s emulator-5556 shell am start -n io.github.altenhofen.pen/.MainActivity`. Exit code `0`. Stdout contains `Starting: Intent { cmp=io.github.altenhofen.pen/.MainActivity }`.
 - **Read the heading.** The screen shows `Pen settings`. Run `adb -s emulator-5556 exec-out uiautomator dump /dev/tty`. The dump contains `text="Pen settings"`.
 - **Read the sliders.** The dump also contains `text="Settle window: 600 ms"`, `text="Stroke width: 6.0 dp"`, and `text="Ambiguity threshold: 0.15"` on a fresh install.
+- **Read export and import.** The dump also contains `text="Export profile"` and `text="Import profile"`.
 - **Proof.** Save the dump and a screenshot. Run `.cursor/skills/verify-pen/scripts/drive-settings.sh`. `artifacts/settings/hierarchy.xml` contains `text="Pen settings"` and `artifacts/settings/screen.png` shows the same words.
 
 ## Gotchas

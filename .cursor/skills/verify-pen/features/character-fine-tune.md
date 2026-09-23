@@ -1,6 +1,6 @@
 # Character fine-tune
 
-Character fine-tune is the training screen behind `Fine-tune 0-9 and a-z` on Pen settings. It walks the user through three drawn samples per character for digits `0` through `9` and lowercase `a` through `z`, on the same in-app canvas as calibration. Each sample becomes its own prototype cluster so recognition can match several shapes per letter.
+Character fine-tune is the training screen behind `Fine-tune 0-9 and a-z` on Pen settings. It walks the user through three drawn samples per character for digits `0` through `9` and lowercase `a` through `z`, on the same in-app canvas as calibration. Samples stay in memory until every character is finished. Then each sample becomes its own prototype cluster so recognition can match several shapes per letter.
 
 ## Sub-features
 
