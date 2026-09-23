@@ -2,15 +2,18 @@
     <string name="app_name" translatable="false">pen</string>
     <string name="ime_name" translatable="false">pen ink</string>
     <string name="settings_title">Pen settings</string>
+    <string name="space_after_full_word">Add space after full word</string>
+    <string name="space_after_full_word_hint">After you pick or write a whole word, type a space automatically. Punctuation moves the space after it.</string>
+    <string name="recognize_spaces_in_handwriting">Recognize spaces in handwriting</string>
+    <string name="recognize_spaces_in_handwriting_hint">When on, gaps between written words become spaces. When off, one stroke is treated as one word.</string>
     <string name="settle_window">Settle window</string>
     <string name="stroke_width">Stroke width</string>
-    <string name="ambiguity_threshold">Ambiguity threshold</string>
     <string name="allow_finger_input">Finger and passive pen</string>
     <string name="allow_finger_input_hint">Allow touch input on the keyboard ink area. Turn on if you do not use an active stylus.</string>
     <string name="slider_label_format">%1$s: %2$s</string>
     <string name="settle_window_value">%1$d ms</string>
     <string name="stroke_width_value">%1$.1f dp</string>
-    <string name="ambiguity_value">%1$.2f</string>
+    <string name="action_my_words">My words</string>
     <string name="action_calibrate">Calibrate</string>
     <string name="action_set_default_keyboard">Set as default keyboard</string>
     <string name="action_export_profile">Export profile</string>
@@ -47,4 +50,13 @@
     <string name="app_language_system_default">System default</string>
     <string name="handwriting_language">Handwriting language</string>
     <string name="handwriting_language_follow_app">Same as app language</string>
+    <string name="my_words_title">My words</string>
+    <string name="my_words_hint">Add brand names and other words ML Kit does not know. Optional training helps shape matching.</string>
+    <string name="my_words_add_label">Word</string>
+    <string name="my_words_add_action">Add</string>
+    <string name="my_words_training_count">%1$d training samples</string>
+    <string name="my_words_train">Train</string>
+    <string name="my_words_delete">Delete</string>
+    <string name="my_words_training_title">Write %1$s</string>
+    <string name="my_words_training_progress">%1$d samples saved</string>
 </resources>

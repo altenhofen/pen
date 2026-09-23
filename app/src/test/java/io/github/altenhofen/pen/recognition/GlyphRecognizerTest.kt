@@ -87,8 +87,9 @@ class GlyphRecognizerTest {
         assertEquals(listOf('9', '8'), result.ranked.map { it.character })
         assertEquals(listOf(ClusterId("seed:9"), ClusterId("seed:8")), result.ranked.map { it.clusterId })
         assertEquals(eightDistance - result.winner.distance, result.ambiguity.gap, 1e-6f)
-        assertFalse(result.ambiguity.isAmbiguous)
-        assertTrue(recognizer.rank(nine, eightDistance + 0.01f).ambiguity.isAmbiguous)
+        assertTrue(result.ambiguity.gap >= between)
+        val tight = recognizer.rank(nine, eightDistance + 0.01f)
+        assertTrue(tight.ambiguity.gap < tight.ambiguity.threshold)
     }
 
     @Test

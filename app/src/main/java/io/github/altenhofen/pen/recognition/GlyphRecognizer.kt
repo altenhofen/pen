@@ -31,7 +31,7 @@ internal class GlyphRecognizer(private val metric: DistanceMetric = DistanceMetr
             .sortedBy { it.distance }
         val winner = ranked.first()
         val gap = ranked.getOrNull(1)?.let { it.distance - winner.distance } ?: Float.POSITIVE_INFINITY
-        return RecognitionResult(winner, ranked, Ambiguity(gap, threshold, gap < threshold), sample)
+        return RecognitionResult(winner, ranked, Ambiguity(gap, threshold), sample)
     }
 
     private companion object {

@@ -15,33 +15,30 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * The plaintext body of a format v3 archive, before Deflate and before encryption.
+ * The plaintext body of a format v4 archive, before Deflate and before encryption.
  *
  * ```
  * varint sampleCount            glyph samples per prototype vector
  * varint wordSampleCount        samples per word vector
  * varint settleMillis
  * f32    strokeWidthDp
- * f32    ambiguityThreshold
  * u8     allowFingerInput
+ * u8     spaceAfterFullWord
+ * u8     recognizeSpacesInHandwriting
  * text   handwritingLanguage tag, empty when following the app locale
  * varint clusterCount
- *   text  id
- *   varint label code point
- *   f32[FEATURE_WIDTH] per-channel scale
- *   i8[sampleCount * FEATURE_WIDTH] quantized values
+ *   ...
  * varint wordCount
  *   text  id
  *   text  word
- *   varint zigzag(confirmedAt - previous confirmedAt)
- *   f32[FEATURE_WIDTH] per-channel scale
- *   i8[wordSampleCount * FEATURE_WIDTH] quantized values
+ *   u8    pinned
+ *   varint zigzag(confirmedAt delta)
+ *   f32[FEATURE_WIDTH] scales + i8 values
+ * varint customWordCount
+ *   text  word
  * ```
  *
- * The sample counts ride along so a future change to either constant rejects old archives instead
- * of reading them as garbage. Scales are per channel because x, y, and the pen-down flag live on
- * different magnitudes: one shared scale would spend most of the int8 range on the flag and
- * coarsen the deltas that recognition actually compares.
+ * [decodeLegacyBody] reads the v3 body that still carried a discarded ambiguity threshold float.
  */
 internal object ProfileBinaryCodec {
     private const val MAX_TEXT_BYTES = 256
@@ -55,8 +52,9 @@ internal object ProfileBinaryCodec {
         writer.varint(WORD_SAMPLE_COUNT.toLong())
         writer.varint(profile.settings.settleMillis)
         writer.float(profile.settings.strokeWidthDp)
-        writer.float(profile.settings.ambiguityThreshold)
         writer.byte(if (profile.settings.allowFingerInput) 1 else 0)
+        writer.byte(if (profile.settings.spaceAfterFullWord) 1 else 0)
+        writer.byte(if (profile.settings.recognizeSpacesInHandwriting) 1 else 0)
         writer.text(profile.settings.handwriting.stored() ?: "")
 
         val clusters = profile.prototypes.filterNot(::isPristineSeed)
@@ -72,27 +70,46 @@ internal object ProfileBinaryCodec {
         profile.words.forEach { sample ->
             writer.text(sample.id)
             writer.text(sample.word)
+            writer.byte(if (sample.pinned) 1 else 0)
             writer.varint(zigzag(sample.confirmedAt - previousConfirmedAt))
             previousConfirmedAt = sample.confirmedAt
             writer.quantized(sample.vector)
         }
+
+        writer.varint(profile.customWords.size.toLong())
+        profile.customWords.forEach { writer.text(it) }
         return out.toByteArray()
     }
 
-    fun decode(body: ByteArray): PenProfile {
+    fun decode(body: ByteArray): PenProfile = decodeBody(body, legacyAmbiguity = false)
+
+    fun decodeLegacyBody(body: ByteArray): PenProfile = decodeBody(body, legacyAmbiguity = true)
+
+    private fun decodeBody(body: ByteArray, legacyAmbiguity: Boolean): PenProfile {
         val reader = BinaryReader(body)
         val sampleCount = reader.count("sample count", MAX_SAMPLE_COUNT)
         val wordSampleCount = reader.count("word sample count", MAX_SAMPLE_COUNT)
         if (sampleCount != SAMPLE_COUNT || wordSampleCount != WORD_SAMPLE_COUNT) {
             throw ProfileTransferException("archive was written for a different feature vector size")
         }
-        val settings = MotorSettings.parse(
-            reader.varint(),
-            reader.float(),
-            reader.float(),
-            reader.byte() != 0,
-            handwritingTag(reader.text()),
-        )
+        val settle = reader.varint()
+        val strokeWidth = reader.float()
+        val settings = if (legacyAmbiguity) {
+            reader.float()
+            MotorSettings.parseLegacy(settle, strokeWidth, null, reader.byte() != 0, handwritingTag(reader.text()))
+        } else {
+            val allowFinger = reader.byte() != 0
+            val spaceAfter = reader.byte() != 0
+            val recognizeSpaces = reader.byte() != 0
+            MotorSettings.parse(
+                settle,
+                strokeWidth,
+                allowFinger,
+                spaceAfter,
+                recognizeSpaces,
+                handwritingTag(reader.text()),
+            )
+        }
 
         val clusterCount = reader.count("cluster count", PenProfile.MAX_PROTOTYPES)
         val clusters = List(clusterCount) {
@@ -106,11 +123,19 @@ internal object ProfileBinaryCodec {
         val words = List(wordCount) {
             val id = reader.text()
             val word = reader.text()
+            val pinned = if (legacyAmbiguity) false else reader.byte() != 0
             val confirmedAt = previousConfirmedAt + unzigzag(reader.varint())
             previousConfirmedAt = confirmedAt
-            WordSample(id, word, reader.quantized(WORD_SAMPLE_COUNT), confirmedAt)
+            WordSample(id, word, reader.quantized(WORD_SAMPLE_COUNT), confirmedAt, pinned)
         }
-        return PenProfile.create(settings, withRegeneratedSeeds(clusters), words)
+
+        val customWords = if (legacyAmbiguity || !reader.hasRemaining()) {
+            emptyList()
+        } else {
+            val customCount = reader.count("custom word count", WordMemory.TOTAL_CAP)
+            List(customCount) { reader.text() }
+        }
+        return PenProfile.create(settings, withRegeneratedSeeds(clusters), words, customWords)
     }
 
     private fun handwritingTag(stored: String): String? = stored.ifEmpty { null }
@@ -199,6 +224,8 @@ internal object ProfileBinaryCodec {
 
     private class BinaryReader(private val bytes: ByteArray) {
         private var cursor = 0
+
+        fun hasRemaining(): Boolean = cursor < bytes.size
 
         fun byte(): Int = take(1)[0].toInt() and 0xFF
 

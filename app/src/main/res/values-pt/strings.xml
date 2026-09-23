@@ -1,14 +1,17 @@
 <resources>
     <string name="settings_title">Configurações da caneta</string>
+    <string name="space_after_full_word">Espaço após palavra inteira</string>
+    <string name="space_after_full_word_hint">Depois de escolher ou escrever uma palavra inteira, insere um espaço automaticamente.</string>
+    <string name="recognize_spaces_in_handwriting">Reconhecer espaços na escrita</string>
+    <string name="recognize_spaces_in_handwriting_hint">Ativado, lacunas entre palavras viram espaços. Desativado, um traço conta como uma palavra.</string>
     <string name="settle_window">Janela de estabilização</string>
     <string name="stroke_width">Espessura do traço</string>
-    <string name="ambiguity_threshold">Limiar de ambiguidade</string>
     <string name="allow_finger_input">Dedo e caneta passiva</string>
     <string name="allow_finger_input_hint">Aceitar o toque na área de escrita do teclado. Ative se você não usa uma caneta ativa.</string>
     <string name="slider_label_format">%1$s: %2$s</string>
     <string name="settle_window_value">%1$d ms</string>
     <string name="stroke_width_value">%1$.1f dp</string>
-    <string name="ambiguity_value">%1$.2f</string>
+    <string name="action_my_words">Minhas palavras</string>
     <string name="action_calibrate">Calibrar</string>
     <string name="action_set_default_keyboard">Definir como teclado padrão</string>
     <string name="action_export_profile">Exportar perfil</string>

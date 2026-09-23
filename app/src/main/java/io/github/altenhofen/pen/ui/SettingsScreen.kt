@@ -38,6 +38,7 @@ internal fun SettingsScreen(
     current: MotorSettings,
     onUpdate: ((MotorSettings) -> MotorSettings) -> Unit,
     onCalibrate: () -> Unit,
+    onMyWords: () -> Unit,
     onSetDefaultKeyboard: () -> Unit,
     onExport: () -> Unit,
     onImport: () -> Unit,
@@ -61,6 +62,20 @@ internal fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineSmall)
+        SettingSwitch(
+            title = stringResource(R.string.space_after_full_word),
+            hint = stringResource(R.string.space_after_full_word_hint),
+            checked = current.spaceAfterFullWord,
+            onCheckedChange = { enabled -> onUpdate { settings -> settings.withSpaceAfterFullWord(enabled) } },
+        )
+        SettingSwitch(
+            title = stringResource(R.string.recognize_spaces_in_handwriting),
+            hint = stringResource(R.string.recognize_spaces_in_handwriting_hint),
+            checked = current.recognizeSpacesInHandwriting,
+            onCheckedChange = { enabled ->
+                onUpdate { settings -> settings.withRecognizeSpacesInHandwriting(enabled) }
+            },
+        )
         SettingSlider(
             label = stringResource(R.string.settle_window),
             value = current.settleMillis.toFloat(),
@@ -75,28 +90,14 @@ internal fun SettingsScreen(
             valueText = { stringResource(R.string.stroke_width_value, it) },
             onCommit = { onUpdate { settings -> settings.withStrokeWidthDp(it) } },
         )
-        SettingSlider(
-            label = stringResource(R.string.ambiguity_threshold),
-            value = current.ambiguityThreshold,
-            range = MotorSettings.MIN_AMBIGUITY..MotorSettings.MAX_AMBIGUITY,
-            valueText = { stringResource(R.string.ambiguity_value, it) },
-            onCommit = { onUpdate { settings -> settings.withAmbiguityThreshold(it) } },
+        SettingSwitch(
+            title = stringResource(R.string.allow_finger_input),
+            hint = stringResource(R.string.allow_finger_input_hint),
+            checked = current.allowFingerInput,
+            onCheckedChange = { enabled -> onUpdate { settings -> settings.withAllowFingerInput(enabled) } },
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
-                Text(stringResource(R.string.allow_finger_input))
-                Text(
-                    stringResource(R.string.allow_finger_input_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            Switch(
-                checked = current.allowFingerInput,
-                onCheckedChange = { enabled -> onUpdate { settings -> settings.withAllowFingerInput(enabled) } },
-            )
+        Button(onClick = onMyWords) {
+            Text(stringResource(R.string.action_my_words))
         }
         Button(onClick = onCalibrate) {
             Text(stringResource(R.string.action_calibrate))
@@ -136,12 +137,27 @@ internal fun SettingsScreen(
     }
 }
 
+@Composable
+private fun SettingSwitch(
+    title: String,
+    hint: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+            Text(title)
+            Text(hint, style = MaterialTheme.typography.bodySmall)
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
 private val APP_LANGUAGE_OPTIONS: List<AppLanguage?> = listOf(null) + AppLanguage.entries
 
 private val HANDWRITING_OPTIONS: List<HandwritingLanguage> =
     listOf(HandwritingLanguage.FollowApp) + InkLanguage.entries.map(HandwritingLanguage::Explicit)
 
-/** Names each language in itself, the way the system language list does. */
 private fun nativeName(tag: String): String {
     val locale = Locale.forLanguageTag(tag)
     return locale.getDisplayName(locale).replaceFirstChar { it.uppercase(locale) }

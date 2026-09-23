@@ -53,6 +53,7 @@ internal data class WordSampleRow(
     val word: String,
     val packed: ByteArray,
     @ColumnInfo(name = "confirmed_at") val confirmedAt: Long,
+    val pinned: Boolean = false,
 )
 
 @Dao
@@ -63,15 +64,18 @@ internal abstract class WordSampleDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract fun upsert(rows: List<WordSampleRow>)
 
-    @Query("DELETE FROM word_samples WHERE id IN (:ids)")
-    abstract fun delete(ids: List<String>)
+    @Query("DELETE FROM word_samples WHERE id = :id")
+    abstract fun deleteOne(id: String)
+
+    @Query("DELETE FROM word_samples WHERE word = :word")
+    abstract fun deleteWord(word: String)
 
     @Query("DELETE FROM word_samples")
     abstract fun deleteAll()
 
     @Transaction
     open fun apply(inserted: List<WordSampleRow>, deletedIds: List<String>) {
-        if (deletedIds.isNotEmpty()) delete(deletedIds)
+        deletedIds.forEach { deleteOne(it) }
         upsert(inserted)
     }
 
@@ -82,10 +86,40 @@ internal abstract class WordSampleDao {
     }
 }
 
-@Database(entities = [ClusterRow::class, WordSampleRow::class], version = 3, exportSchema = false)
+@Dao
+internal abstract class CustomWordDao {
+    @Query("SELECT word FROM custom_words ORDER BY word")
+    abstract fun all(): List<String>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract fun upsert(row: CustomWordRow)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract fun upsertAll(rows: List<CustomWordRow>)
+
+    @Query("DELETE FROM custom_words WHERE word = :word")
+    abstract fun delete(word: String)
+
+    @Query("DELETE FROM custom_words")
+    abstract fun deleteAll()
+
+    @Transaction
+    open fun replaceAll(words: List<String>) {
+        deleteAll()
+        upsertAll(words.map { CustomWordRow(it) })
+    }
+}
+
+@Entity(tableName = "custom_words")
+internal data class CustomWordRow(
+    @PrimaryKey val word: String,
+)
+
+@Database(entities = [ClusterRow::class, WordSampleRow::class, CustomWordRow::class], version = 4, exportSchema = false)
 internal abstract class PrototypeDatabase : RoomDatabase() {
     abstract fun prototypes(): PrototypeDao
     abstract fun words(): WordSampleDao
+    abstract fun customWords(): CustomWordDao
 
     companion object {
         @Volatile
@@ -98,9 +132,16 @@ internal abstract class PrototypeDatabase : RoomDatabase() {
                     context.applicationContext,
                     PrototypeDatabase::class.java,
                     "prototypes.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).allowMainThreadQueries().build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).allowMainThreadQueries().build().also { instance = it }
             }
         }
+    }
+}
+
+internal val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE word_samples ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("CREATE TABLE IF NOT EXISTS custom_words (word TEXT NOT NULL, PRIMARY KEY(word))")
     }
 }
 
@@ -175,12 +216,41 @@ internal class WordMemoryStore(private val dao: WordSampleDao) {
         dao.apply(listOf(inserted.toRow()), evicted.map { it.id })
     }
 
+    fun remove(id: String) {
+        dao.deleteOne(id)
+    }
+
+    fun removeWord(word: String) {
+        dao.deleteWord(word)
+    }
+
     fun replaceAll(samples: List<WordSample>) {
         dao.replaceAll(samples.map { it.toRow() })
     }
 
     companion object {
         fun open(context: Context): WordMemoryStore = WordMemoryStore(PrototypeDatabase.open(context).words())
+    }
+}
+
+internal class CustomWordStore(private val dao: CustomWordDao) {
+    fun load(): List<String> = dao.all()
+
+    fun add(word: String) {
+        require(word.isNotBlank())
+        dao.upsert(CustomWordRow(word.trim()))
+    }
+
+    fun remove(word: String) {
+        dao.delete(word)
+    }
+
+    fun replaceAll(words: List<String>) {
+        dao.replaceAll(words.map { it.trim() }.filter { it.isNotBlank() }.distinct().sorted())
+    }
+
+    companion object {
+        fun open(context: Context): CustomWordStore = CustomWordStore(PrototypeDatabase.open(context).customWords())
     }
 }
 
@@ -196,9 +266,9 @@ private fun unpack(packed: ByteArray): FloatArray {
     return FloatArray(packed.size / Float.SIZE_BYTES) { buffer.float }
 }
 
-private fun WordSample.toRow() = WordSampleRow(id, word, vector.pack(), confirmedAt)
+private fun WordSample.toRow() = WordSampleRow(id, word, vector.pack(), confirmedAt, pinned)
 
-private fun WordSampleRow.toSample() = WordSample(id, word, FeatureVector.from(unpack(packed), WORD_SAMPLE_COUNT), confirmedAt)
+private fun WordSampleRow.toSample() = WordSample(id, word, FeatureVector.from(unpack(packed), WORD_SAMPLE_COUNT), confirmedAt, pinned)
 
 private fun PrototypeCluster.toRow() = ClusterRow(id.value, label.toString(), vector.pack())
 

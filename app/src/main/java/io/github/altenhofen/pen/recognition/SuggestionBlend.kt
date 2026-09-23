@@ -2,18 +2,16 @@ package io.github.altenhofen.pen.recognition
 
 data class Suggestion(val text: String, val score: Float)
 
-/**
- * One opinion about the ink. A source proposes candidates it is allowed to add and scores any
- * candidate. Ranks and thresholds, not raw scores, cross source boundaries because template DTW,
- * word DTW, and ink model ranks live on unrelated scales.
- */
 internal interface SuggestionSource {
     fun proposals(): List<String>
     fun score(candidate: String): Float
 }
 
-internal class InkModelSource(candidates: List<String>) : SuggestionSource {
-    val ranked = candidates.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+internal class InkModelSource(
+    candidates: List<String>,
+    recognizeSpaces: Boolean,
+) : SuggestionSource {
+    val ranked = normalizeInkCandidates(candidates, recognizeSpaces)
 
     override fun proposals() = ranked
 
@@ -27,12 +25,6 @@ internal class InkModelSource(candidates: List<String>) : SuggestionSource {
     }
 }
 
-/**
- * The single-glyph templates. They cannot judge word ink, so they only speak when the ink model
- * is silent or itself reads a single character, and only propose when the ink model is silent.
- * Labels are lowercase, so single-character candidates match case-insensitively and keep the
- * ink model's casing.
- */
 internal class GlyphTemplateSource(
     private val result: RecognitionResult?,
     inkModel: InkModelSource,
@@ -62,11 +54,6 @@ internal class GlyphTemplateSource(
     }
 }
 
-/**
- * The user's own confirmed writing. A recall inside [WORD_MATCH_DISTANCE] may add a word the ink
- * model never proposed, and a close one outweighs the ink model's top pick. Confirmed words also
- * get a small prior so they win ties among the ink model's own candidates.
- */
 internal class WordMemorySource(
     private val recalls: List<WordRecall>,
     private val confirmations: Map<String, Int>,
@@ -87,6 +74,41 @@ internal class WordMemorySource(
         const val WORD_MATCH_DISTANCE = 0.04f
         const val MATCH_WEIGHT = 2f
         const val PRIOR_WEIGHT = 0.6f
+    }
+}
+
+/**
+ * Custom dictionary entries matched by edit distance to ink-model candidates. They only surface
+ * when ML Kit's own top pick is weak or already close in spelling.
+ */
+internal class CustomDictionarySource(
+    private val dictionary: List<String>,
+    private val inkModel: InkModelSource,
+) : SuggestionSource {
+    private val topInk = inkModel.ranked.firstOrNull()
+    private val weakTop = topInk == null || inkModel.score(topInk) <= WEAK_TOP_SCORE
+
+    override fun proposals(): List<String> = dictionary.filter { entry ->
+        val alreadyListed = inkModel.ranked.any { it.equals(entry, ignoreCase = true) }
+        if (alreadyListed) return@filter false
+        inkModel.ranked.any { spellingDistance(it, entry) <= MAX_SPELLING_DISTANCE }
+    }
+
+    override fun score(candidate: String): Float {
+        val nearestInk = inkModel.ranked.minOfOrNull { spellingDistance(it, candidate) } ?: return 0f
+        if (nearestInk > MAX_SPELLING_DISTANCE) return 0f
+        val spelling = SPELLING_WEIGHT * (1f - nearestInk.toFloat() / MAX_SPELLING_DISTANCE)
+        val prior = PRIOR_WEIGHT
+        val inkTop = topInk?.let { inkModel.score(it) } ?: 0f
+        val cap = if (inkTop > WEAK_TOP_SCORE && nearestInk > 0) spelling * 0.5f else spelling
+        return cap + prior
+    }
+
+    companion object {
+        const val MAX_SPELLING_DISTANCE = 2
+        const val SPELLING_WEIGHT = 1.4f
+        const val PRIOR_WEIGHT = 0.6f
+        const val WEAK_TOP_SCORE = 0.55f
     }
 }
 

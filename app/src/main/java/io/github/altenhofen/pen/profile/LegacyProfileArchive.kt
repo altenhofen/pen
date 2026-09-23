@@ -36,7 +36,7 @@ internal object LegacyProfileArchive {
                 throw ProfileTransferException("unsupported formatVersion ${wire.formatVersion}")
             }
             PenProfile.create(
-                MotorSettings.parse(
+                MotorSettings.parseLegacy(
                     wire.motor.settleMillis,
                     wire.motor.strokeWidthDp,
                     wire.motor.ambiguityThreshold,

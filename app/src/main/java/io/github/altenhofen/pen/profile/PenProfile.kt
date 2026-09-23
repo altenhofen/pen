@@ -9,11 +9,17 @@ internal class PenProfile private constructor(
     val settings: MotorSettings,
     val prototypes: List<PrototypeCluster>,
     val words: List<WordSample>,
+    val customWords: List<String>,
 ) {
     companion object {
         const val MAX_PROTOTYPES = 4096
 
-        fun create(settings: MotorSettings, prototypes: List<PrototypeCluster>, words: List<WordSample> = emptyList()): PenProfile {
+        fun create(
+            settings: MotorSettings,
+            prototypes: List<PrototypeCluster>,
+            words: List<WordSample> = emptyList(),
+            customWords: List<String> = emptyList(),
+        ): PenProfile {
             require(prototypes.isNotEmpty()) { "prototypes must be nonempty" }
             require(prototypes.size <= MAX_PROTOTYPES) { "prototypes exceed $MAX_PROTOTYPES" }
             val ids = prototypes.map { it.id.value }
@@ -21,7 +27,8 @@ internal class PenProfile private constructor(
             require(ids.size == ids.toSet().size) { "cluster ids must be unique" }
             require(words.size <= WordMemory.TOTAL_CAP) { "word samples exceed ${WordMemory.TOTAL_CAP}" }
             require(words.map { it.id }.toSet().size == words.size) { "word sample ids must be unique" }
-            return PenProfile(settings, prototypes.sortedBy { it.id.value }, words.sortedBy { it.confirmedAt })
+            val dictionary = customWords.map { it.trim() }.filter { it.isNotBlank() }.distinct().sorted()
+            return PenProfile(settings, prototypes.sortedBy { it.id.value }, words.sortedBy { it.confirmedAt }, dictionary)
         }
     }
 }

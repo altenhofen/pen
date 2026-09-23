@@ -77,7 +77,7 @@ internal object RealisticProfile {
             append("""{"formatVersion":2,"motor":{""")
             append(""""settleMillis":${profile.settings.settleMillis},""")
             append(""""strokeWidthDp":${profile.settings.strokeWidthDp},""")
-            append(""""ambiguityThreshold":${profile.settings.ambiguityThreshold},""")
+            append(""""ambiguityThreshold":0.15,""")
             append(""""allowFingerInput":${profile.settings.allowFingerInput}},""")
             append(""""prototypes":[""")
             profile.prototypes.forEachIndexed { index, cluster ->

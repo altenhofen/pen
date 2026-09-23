@@ -25,11 +25,7 @@ data class RankedMatch(
     val distance: Float,
 )
 
-data class Ambiguity(
-    val gap: Float,
-    val threshold: Float,
-    val isAmbiguous: Boolean,
-)
+data class Ambiguity(val gap: Float, val threshold: Float)
 
 internal class RecognitionResult(
     val winner: RankedMatch,

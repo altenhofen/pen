@@ -7,7 +7,7 @@ internal fun seed(c: Char) = RankedMatch(c, ClusterId.seed(c), 0f)
 internal fun trained(c: Char, index: Int = 0) = RankedMatch(c, ClusterId.training(c, "s1", index), 0f)
 
 internal fun glyphResult(vararg ranked: RankedMatch, gap: Float = 0f, threshold: Float = 0.15f) =
-    RecognitionResult(ranked.first(), ranked.toList(), Ambiguity(gap, threshold, gap < threshold), seedVector('0'))
+    RecognitionResult(ranked.first(), ranked.toList(), Ambiguity(gap, threshold), seedVector('0'))
 
 class SuggestionBlendTest {
     private fun blend(
@@ -17,7 +17,7 @@ class SuggestionBlendTest {
         confirmations: Map<String, Int> = emptyMap(),
         limit: Int = 5,
     ): List<String> {
-        val ink = InkModelSource(inkModel)
+        val ink = InkModelSource(inkModel, recognizeSpaces = false)
         return blendSuggestions(
             listOf(ink, GlyphTemplateSource(glyph, ink), WordMemorySource(recalls, confirmations)),
             limit,

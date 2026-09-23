@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -26,12 +27,19 @@ import io.github.altenhofen.pen.profile.ProfileFailure
 import io.github.altenhofen.pen.profile.ProfileTransfer
 import io.github.altenhofen.pen.profile.ProfileTransferException
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
+import io.github.altenhofen.pen.recognition.CustomWordStore
 import io.github.altenhofen.pen.recognition.PrototypeStore
+import io.github.altenhofen.pen.recognition.WordMemory
 import io.github.altenhofen.pen.recognition.WordMemoryStore
+import io.github.altenhofen.pen.recognition.WordSample
+import io.github.altenhofen.pen.recognition.wordFeatures
 import io.github.altenhofen.pen.settings.AppLocales
 import io.github.altenhofen.pen.settings.MotorSettings
 import io.github.altenhofen.pen.settings.MotorSettingsStore
 import io.github.altenhofen.pen.ui.CalibrationMinigameScreen
+import io.github.altenhofen.pen.ui.MyWordEntry
+import io.github.altenhofen.pen.ui.MyWordTrainingScreen
+import io.github.altenhofen.pen.ui.MyWordsScreen
 import io.github.altenhofen.pen.ui.PassphraseRequest
 import io.github.altenhofen.pen.ui.SettingsScreen
 import io.github.altenhofen.pen.ui.theme.PenTheme
@@ -39,10 +47,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 private enum class LauncherScreen {
     Settings,
     Calibrate,
+    MyWords,
+    MyWordTrain,
 }
 
 internal enum class ProfileTransferStatus(@param:StringRes val messageRes: Int) {
@@ -56,18 +67,20 @@ internal enum class ProfileTransferStatus(@param:StringRes val messageRes: Int) 
 class MainActivity : AppCompatActivity() {
     private val recognizer by lazy { AdaptiveRecognizer.open(applicationContext) }
     private val settingsStore by lazy { MotorSettingsStore.open(applicationContext) }
+    private val wordStore by lazy { WordMemoryStore.open(applicationContext) }
+    private val customWordStore by lazy { CustomWordStore.open(applicationContext) }
     private val transfer by lazy {
         ProfileTransfer(
             settingsStore,
             PrototypeStore.open(applicationContext),
-            WordMemoryStore.open(applicationContext),
+            wordStore,
+            customWordStore,
             contentResolver,
         )
     }
     private val transferStatus = MutableStateFlow<ProfileTransferStatus?>(null)
     private val passphraseRequest = MutableStateFlow<PassphraseRequest?>(null)
 
-    /** Held only across the save sheet, which cannot carry it, and zeroed the moment export ends. */
     private var exportPassphrase: CharArray? = null
 
     private val exportDocument = registerForActivityResult(
@@ -89,13 +102,22 @@ class MainActivity : AppCompatActivity() {
                 val scope = rememberCoroutineScope()
                 var screen by rememberSaveable { mutableStateOf(LauncherScreen.Settings) }
                 var appLanguage by remember { mutableStateOf(AppLocales.current()) }
-                BackHandler(enabled = screen != LauncherScreen.Settings) { screen = LauncherScreen.Settings }
+                var trainingWord by rememberSaveable { mutableStateOf("") }
+                var trainingSamples by rememberSaveable { mutableIntStateOf(0) }
+                var myWords by remember { mutableStateOf(loadMyWords()) }
+                BackHandler(enabled = screen != LauncherScreen.Settings) {
+                    screen = when (screen) {
+                        LauncherScreen.MyWordTrain -> LauncherScreen.MyWords
+                        else -> LauncherScreen.Settings
+                    }
+                }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when (screen) {
                         LauncherScreen.Settings -> SettingsScreen(
                             current = current,
                             onUpdate = { transform -> scope.launch { settingsStore.update(transform) } },
                             onCalibrate = { screen = LauncherScreen.Calibrate },
+                            onMyWords = { myWords = loadMyWords(); screen = LauncherScreen.MyWords },
                             onSetDefaultKeyboard = {
                                 startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
                             },
@@ -118,9 +140,67 @@ class MainActivity : AppCompatActivity() {
                             onDone = { screen = LauncherScreen.Settings },
                             modifier = Modifier.padding(innerPadding),
                         )
+                        LauncherScreen.MyWords -> MyWordsScreen(
+                            words = myWords,
+                            onAdd = { word ->
+                                scope.launch(Dispatchers.IO) {
+                                    customWordStore.add(word)
+                                    myWords = loadMyWords()
+                                }
+                            },
+                            onDelete = { word ->
+                                scope.launch(Dispatchers.IO) {
+                                    customWordStore.remove(word)
+                                    wordStore.removeWord(word)
+                                    myWords = loadMyWords()
+                                }
+                            },
+                            onTrain = { word ->
+                                trainingWord = word
+                                trainingSamples = wordStore.load().pinnedTrainingCount(word)
+                                screen = LauncherScreen.MyWordTrain
+                            },
+                            onBack = { screen = LauncherScreen.Settings },
+                            modifier = Modifier.padding(innerPadding),
+                        )
+                        LauncherScreen.MyWordTrain -> MyWordTrainingScreen(
+                            word = trainingWord,
+                            sampleCount = trainingSamples,
+                            capture = current.capture(),
+                            onSample = { strokes ->
+                                val vector = wordFeatures(strokes) ?: return@MyWordTrainingScreen
+                                scope.launch(Dispatchers.IO) {
+                                    val sample = WordSample(
+                                        "custom:$trainingWord:${UUID.randomUUID()}",
+                                        trainingWord,
+                                        vector,
+                                        System.currentTimeMillis(),
+                                        pinned = true,
+                                    )
+                                    val memory = wordStore.load()
+                                    val pinned = memory.samples.count {
+                                        it.word == trainingWord && it.pinned
+                                    }
+                                    if (pinned >= WordMemory.PINNED_TRAINING_CAP) return@launch
+                                    val (next, evicted) = memory.remember(sample)
+                                    wordStore.apply(sample, evicted)
+                                    trainingSamples = next.pinnedTrainingCount(trainingWord)
+                                    myWords = loadMyWords()
+                                }
+                            },
+                            onDone = { screen = LauncherScreen.MyWords },
+                            modifier = Modifier.padding(innerPadding),
+                        )
                     }
                 }
             }
+        }
+    }
+
+    private fun loadMyWords(): List<MyWordEntry> {
+        val memory = wordStore.load()
+        return customWordStore.load().map { word ->
+            MyWordEntry(word, memory.pinnedTrainingCount(word))
         }
     }
 
