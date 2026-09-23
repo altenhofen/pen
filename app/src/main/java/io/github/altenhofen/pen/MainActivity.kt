@@ -4,12 +4,12 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -51,7 +51,7 @@ internal enum class ProfileTransferStatus(@param:StringRes val messageRes: Int) 
     WrongPassphrase(R.string.transfer_wrong_passphrase),
 }
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     private val recognizer by lazy { AdaptiveRecognizer.open(applicationContext) }
     private val settingsStore by lazy { MotorSettingsStore.open(applicationContext) }
     private val transfer by lazy {
