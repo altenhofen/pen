@@ -34,22 +34,15 @@ private val Context.motorDataStore: DataStore<Preferences> by preferencesDataSto
 
 private val SETTLE_MILLIS = longPreferencesKey("settle_millis")
 private val STROKE_WIDTH_DP = floatPreferencesKey("stroke_width_dp")
-private val AMBIGUITY_THRESHOLD = floatPreferencesKey("ambiguity_threshold")
 private val ALLOW_FINGER_INPUT = booleanPreferencesKey("allow_finger_input")
+private val SPACE_AFTER_FULL_WORD = booleanPreferencesKey("space_after_full_word")
+private val RECOGNIZE_SPACES = booleanPreferencesKey("recognize_spaces_in_handwriting")
 private val HANDWRITING_LANGUAGE = stringPreferencesKey("handwriting_language")
 
 private class PreferencesMotorSettingsStore(private val store: DataStore<Preferences>) : MotorSettingsStore {
     override val values: Flow<MotorSettings> = store.data
         .catch { error -> if (error is IOException) emit(emptyPreferences()) else throw error }
-        .map { prefs ->
-            MotorSettings.parse(
-                prefs[SETTLE_MILLIS],
-                prefs[STROKE_WIDTH_DP],
-                prefs[AMBIGUITY_THRESHOLD],
-                prefs[ALLOW_FINGER_INPUT],
-                prefs[HANDWRITING_LANGUAGE],
-            )
-        }
+        .map { prefs -> readFrom(prefs) }
 
     override fun readBlocking(): MotorSettings = runBlocking { values.first() }
 
@@ -59,16 +52,7 @@ private class PreferencesMotorSettingsStore(private val store: DataStore<Prefere
 
     override suspend fun update(transform: (MotorSettings) -> MotorSettings) {
         store.edit { prefs ->
-            val next = transform(
-                MotorSettings.parse(
-                prefs[SETTLE_MILLIS],
-                prefs[STROKE_WIDTH_DP],
-                prefs[AMBIGUITY_THRESHOLD],
-                prefs[ALLOW_FINGER_INPUT],
-                prefs[HANDWRITING_LANGUAGE],
-            ),
-            )
-            writeInto(prefs, next)
+            writeInto(prefs, transform(readFrom(prefs)))
         }
     }
 
@@ -76,11 +60,22 @@ private class PreferencesMotorSettingsStore(private val store: DataStore<Prefere
         store.edit { prefs -> writeInto(prefs, settings) }
     }
 
+    private fun readFrom(prefs: Preferences): MotorSettings =
+        MotorSettings.parse(
+            prefs[SETTLE_MILLIS],
+            prefs[STROKE_WIDTH_DP],
+            prefs[ALLOW_FINGER_INPUT],
+            prefs[SPACE_AFTER_FULL_WORD],
+            prefs[RECOGNIZE_SPACES],
+            prefs[HANDWRITING_LANGUAGE],
+        )
+
     private fun writeInto(prefs: MutablePreferences, settings: MotorSettings) {
         prefs[SETTLE_MILLIS] = settings.settleMillis
         prefs[STROKE_WIDTH_DP] = settings.strokeWidthDp
-        prefs[AMBIGUITY_THRESHOLD] = settings.ambiguityThreshold
         prefs[ALLOW_FINGER_INPUT] = settings.allowFingerInput
+        prefs[SPACE_AFTER_FULL_WORD] = settings.spaceAfterFullWord
+        prefs[RECOGNIZE_SPACES] = settings.recognizeSpacesInHandwriting
         val handwriting = settings.handwriting.stored()
         if (handwriting == null) prefs.remove(HANDWRITING_LANGUAGE) else prefs[HANDWRITING_LANGUAGE] = handwriting
     }

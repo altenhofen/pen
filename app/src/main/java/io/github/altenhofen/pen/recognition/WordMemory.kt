@@ -11,6 +11,7 @@ internal data class WordSample(
     val word: String,
     val vector: FeatureVector,
     val confirmedAt: Long,
+    val pinned: Boolean = false,
 ) {
     init {
         require(word.isNotBlank()) { "word must be non-blank" }
@@ -31,18 +32,33 @@ internal class WordMemory(val samples: List<WordSample> = emptyList()) {
     fun remember(sample: WordSample): Pair<WordMemory, List<WordSample>> {
         val evicted = ArrayList<WordSample>()
         val sameWord = samples.filter { it.word == sample.word }
-        if (sameWord.size >= PER_WORD_CAP) {
-            evicted += sameWord.sortedBy { it.confirmedAt }.take(sameWord.size - PER_WORD_CAP + 1)
+        if (!sample.pinned) {
+            val unpinned = sameWord.filter { !it.pinned }
+            if (unpinned.size >= PER_WORD_CAP) {
+                evicted += unpinned.sortedBy { it.confirmedAt }.take(unpinned.size - PER_WORD_CAP + 1)
+            }
         }
-        val sameWordIds = evicted.map { it.id }.toSet()
-        var kept = samples.filter { it.id !in sameWordIds } + sample
+        val evictedIds = evicted.map { it.id }.toSet()
+        var kept = samples.filter { it.id !in evictedIds } + sample
         if (kept.size > TOTAL_CAP) {
-            val overflow = kept.sortedBy { it.confirmedAt }.take(kept.size - TOTAL_CAP)
-            val overflowIds = overflow.map { it.id }.toSet()
-            evicted += overflow
+            val overflow = kept.filter { !it.pinned }.sortedBy { it.confirmedAt }
+            val dropCount = kept.size - TOTAL_CAP
+            if (overflow.size < dropCount) throw IllegalStateException("only pinned samples remain")
+            val overflowIds = overflow.take(dropCount).map { it.id }.toSet()
+            evicted += kept.filter { it.id in overflowIds }
             kept = kept.filter { it.id !in overflowIds }
         }
         return WordMemory(kept) to evicted
+    }
+
+    fun forget(id: String): Pair<WordMemory, WordSample?> {
+        val removed = samples.singleOrNull { it.id == id } ?: return this to null
+        return WordMemory(samples.filter { it.id != id }) to removed
+    }
+
+    fun forgetWord(word: String): Pair<WordMemory, List<WordSample>> {
+        val removed = samples.filter { it.word == word }
+        return WordMemory(samples.filter { it.word != word }) to removed
     }
 
     /** Each word scored by the mean DTW distance of its nearest samples, closest first. */
@@ -54,11 +70,14 @@ internal class WordMemory(val samples: List<WordSample> = emptyList()) {
         }
         .sortedBy { it.distance }
 
-    fun confirmations(): Map<String, Int> = samples.groupingBy { it.word }.eachCount()
+    fun confirmations(): Map<String, Int> = samples.filter { !it.pinned }.groupingBy { it.word }.eachCount()
+
+    fun pinnedTrainingCount(word: String): Int = samples.count { it.word == word && it.pinned }
 
     companion object {
         const val PER_WORD_CAP = 5
         const val TOTAL_CAP = 1000
         const val NEAREST_PER_WORD = 3
+        const val PINNED_TRAINING_CAP = 5
     }
 }

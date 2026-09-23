@@ -1,6 +1,7 @@
 package io.github.altenhofen.pen.settings
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class MotorSettingsTest {
@@ -17,24 +18,31 @@ class MotorSettingsTest {
     }
 
     @Test
-    fun ambiguityStaysPositiveAndAtMostOne() {
-        assertEquals(0.01f, MotorSettings.Default.withAmbiguityThreshold(0f).ambiguityThreshold)
-        assertEquals(1f, MotorSettings.Default.withAmbiguityThreshold(3f).ambiguityThreshold)
+    fun imeTogglesDefaultOff() {
+        assertFalse(MotorSettings.Default.spaceAfterFullWord)
+        assertFalse(MotorSettings.Default.recognizeSpacesInHandwriting)
     }
 
     @Test
     fun missingOrCorruptDiskValuesFallBackPerField() {
-        val parsed = MotorSettings.parse(900L, Float.NaN, null)
+        val parsed = MotorSettings.parse(900L, Float.NaN, null, null, null)
         assertEquals(900L, parsed.settleMillis)
         assertEquals(6f, parsed.strokeWidthDp)
-        assertEquals(0.15f, parsed.ambiguityThreshold)
         assertEquals(CaptureStyle(900L, 6f), parsed.capture())
+    }
+
+    @Test
+    fun legacyAmbiguityFieldIsIgnored() {
+        val parsed = MotorSettings.parseLegacy(900L, 5f, 0.99f, true)
+        assertEquals(900L, parsed.settleMillis)
+        assertEquals(5f, parsed.strokeWidthDp)
+        assertEquals(true, parsed.allowFingerInput)
     }
 
     @Test
     fun handwritingLanguageDefaultsToFollowApp() {
         assertEquals(HandwritingLanguage.FollowApp, MotorSettings.Default.handwriting)
-        assertEquals(HandwritingLanguage.FollowApp, MotorSettings.parse(900L, 5f, 0.2f).handwriting)
+        assertEquals(HandwritingLanguage.FollowApp, MotorSettings.parseLegacy(900L, 5f, 0.2f).handwriting)
     }
 
     @Test
@@ -43,23 +51,12 @@ class MotorSettingsTest {
         val reread = MotorSettings.parse(
             chosen.settleMillis,
             chosen.strokeWidthDp,
-            chosen.ambiguityThreshold,
             chosen.allowFingerInput,
+            chosen.spaceAfterFullWord,
+            chosen.recognizeSpacesInHandwriting,
             chosen.handwriting.stored(),
         )
         assertEquals("pt-BR", chosen.handwriting.stored())
-        assertEquals(HandwritingLanguage.Explicit(InkLanguage.Portuguese), reread.handwriting)
         assertEquals(chosen, reread)
-    }
-
-    @Test
-    fun handwritingLanguageDoesNotDisturbTheOtherFields() {
-        val chosen = MotorSettings.Default
-            .withSettleMillis(900L)
-            .withHandwriting(HandwritingLanguage.Explicit(InkLanguage.German))
-        assertEquals(900L, chosen.settleMillis)
-        assertEquals(6f, chosen.strokeWidthDp)
-        assertEquals(0.15f, chosen.ambiguityThreshold)
-        assertEquals(false, chosen.allowFingerInput)
     }
 }

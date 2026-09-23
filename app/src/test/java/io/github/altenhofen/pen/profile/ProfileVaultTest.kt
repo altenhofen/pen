@@ -9,7 +9,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.ByteArrayOutputStream
 
-/** The encrypted envelope around the format v3 body. */
+/** The encrypted envelope around the format v4 body. */
 class ProfileVaultTest {
     @Test
     fun theRightPassphraseReturnsTheProfile() {
@@ -22,7 +22,7 @@ class ProfileVaultTest {
     fun headerAnnouncesTheFormat() {
         val encoded = encode(profile(), PASSPHRASE)
         assertEquals(byteArrayOf(0x50, 0x45, 0x4E, 0x56).toList(), encoded.copyOf(4).toList())
-        assertEquals(3, encoded[4].toInt())
+        assertEquals(ProfileVault.FORMAT_VERSION, encoded[4].toInt())
         assertEquals(1, encoded[5].toInt())
         assertEquals(true, ProfileVault.isVaultArchive(encoded))
         assertEquals(false, ProfileVault.isVaultArchive(byteArrayOf(0x50, 0x4B, 0x03, 0x04)))

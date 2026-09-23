@@ -77,7 +77,6 @@ class LegacyProfileArchiveTest {
         val decoded = LegacyProfileArchive.decode(zipOf(profileJson(strokeWidth = "NaN")))
         assertEquals(6f, decoded.settings.strokeWidthDp)
         assertEquals(900L, decoded.settings.settleMillis)
-        assertEquals(0.2f, decoded.settings.ambiguityThreshold)
     }
 
     @Test

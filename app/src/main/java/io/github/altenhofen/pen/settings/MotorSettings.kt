@@ -3,24 +3,28 @@ package io.github.altenhofen.pen.settings
 class MotorSettings private constructor(
     val settleMillis: Long,
     val strokeWidthDp: Float,
-    val ambiguityThreshold: Float,
     val allowFingerInput: Boolean,
+    val spaceAfterFullWord: Boolean,
+    val recognizeSpacesInHandwriting: Boolean,
     val handwriting: HandwritingLanguage,
 ) {
     fun withSettleMillis(value: Long): MotorSettings =
-        of(value, strokeWidthDp, ambiguityThreshold, allowFingerInput, handwriting)
+        of(value, strokeWidthDp, allowFingerInput, spaceAfterFullWord, recognizeSpacesInHandwriting, handwriting)
 
     fun withStrokeWidthDp(value: Float): MotorSettings =
-        of(settleMillis, value, ambiguityThreshold, allowFingerInput, handwriting)
-
-    fun withAmbiguityThreshold(value: Float): MotorSettings =
-        of(settleMillis, strokeWidthDp, value, allowFingerInput, handwriting)
+        of(settleMillis, value, allowFingerInput, spaceAfterFullWord, recognizeSpacesInHandwriting, handwriting)
 
     fun withAllowFingerInput(value: Boolean): MotorSettings =
-        of(settleMillis, strokeWidthDp, ambiguityThreshold, value, handwriting)
+        of(settleMillis, strokeWidthDp, value, spaceAfterFullWord, recognizeSpacesInHandwriting, handwriting)
+
+    fun withSpaceAfterFullWord(value: Boolean): MotorSettings =
+        of(settleMillis, strokeWidthDp, allowFingerInput, value, recognizeSpacesInHandwriting, handwriting)
+
+    fun withRecognizeSpacesInHandwriting(value: Boolean): MotorSettings =
+        of(settleMillis, strokeWidthDp, allowFingerInput, spaceAfterFullWord, value, handwriting)
 
     fun withHandwriting(value: HandwritingLanguage): MotorSettings =
-        of(settleMillis, strokeWidthDp, ambiguityThreshold, allowFingerInput, value)
+        of(settleMillis, strokeWidthDp, allowFingerInput, spaceAfterFullWord, recognizeSpacesInHandwriting, value)
 
     fun capture(): CaptureStyle = CaptureStyle(settleMillis, strokeWidthDp)
 
@@ -28,51 +32,63 @@ class MotorSettings private constructor(
         other is MotorSettings &&
             settleMillis == other.settleMillis &&
             strokeWidthDp == other.strokeWidthDp &&
-            ambiguityThreshold == other.ambiguityThreshold &&
             allowFingerInput == other.allowFingerInput &&
+            spaceAfterFullWord == other.spaceAfterFullWord &&
+            recognizeSpacesInHandwriting == other.recognizeSpacesInHandwriting &&
             handwriting == other.handwriting
 
     override fun hashCode(): Int =
-        (((settleMillis.hashCode() * 31 + strokeWidthDp.hashCode()) * 31 + ambiguityThreshold.hashCode()) * 31 +
-            allowFingerInput.hashCode()) * 31 + handwriting.hashCode()
+        (((((settleMillis.hashCode() * 31 + strokeWidthDp.hashCode()) * 31 + allowFingerInput.hashCode()) * 31 +
+            spaceAfterFullWord.hashCode()) * 31 + recognizeSpacesInHandwriting.hashCode()) * 31 + handwriting.hashCode())
 
     companion object {
         const val MIN_SETTLE_MILLIS = 300L
         const val MAX_SETTLE_MILLIS = 1_200L
         const val MIN_STROKE_WIDTH_DP = 2f
         const val MAX_STROKE_WIDTH_DP = 16f
-        const val MIN_AMBIGUITY = 0.01f
-        const val MAX_AMBIGUITY = 1f
+        const val FIXED_AMBIGUITY_THRESHOLD = 0.15f
 
-        val Default: MotorSettings = MotorSettings(600L, 6f, 0.15f, false, HandwritingLanguage.FollowApp)
+        val Default: MotorSettings = MotorSettings(600L, 6f, false, false, false, HandwritingLanguage.FollowApp)
 
         internal fun parse(
             settle: Long?,
             width: Float?,
-            delta: Float?,
             allowFinger: Boolean? = null,
+            spaceAfterFullWord: Boolean? = null,
+            recognizeSpaces: Boolean? = null,
             handwriting: String? = null,
         ): MotorSettings = of(
             settle ?: Default.settleMillis,
             width ?: Default.strokeWidthDp,
-            delta ?: Default.ambiguityThreshold,
             allowFinger ?: Default.allowFingerInput,
+            spaceAfterFullWord ?: Default.spaceAfterFullWord,
+            recognizeSpaces ?: Default.recognizeSpacesInHandwriting,
             HandwritingLanguage.parse(handwriting),
         )
+
+        /** Legacy archives still carry a threshold float; it is ignored. */
+        internal fun parseLegacy(
+            settle: Long?,
+            width: Float?,
+            @Suppress("UNUSED_PARAMETER") legacyAmbiguity: Float?,
+            allowFinger: Boolean? = null,
+            handwriting: String? = null,
+        ): MotorSettings = parse(settle, width, allowFinger, null, null, handwriting)
 
         private fun of(
             settle: Long,
             width: Float,
-            delta: Float,
             allowFinger: Boolean,
+            spaceAfterFullWord: Boolean,
+            recognizeSpaces: Boolean,
             handwriting: HandwritingLanguage,
         ) = MotorSettings(
             settle.coerceIn(MIN_SETTLE_MILLIS, MAX_SETTLE_MILLIS),
             (width.takeIf { it.isFinite() } ?: Default.strokeWidthDp)
                 .coerceIn(MIN_STROKE_WIDTH_DP, MAX_STROKE_WIDTH_DP),
-            (delta.takeIf { it.isFinite() } ?: Default.ambiguityThreshold)
-                .coerceIn(MIN_AMBIGUITY, MAX_AMBIGUITY),
             allowFinger,
+            spaceAfterFullWord,
+            recognizeSpaces,
             handwriting,
         )
     }

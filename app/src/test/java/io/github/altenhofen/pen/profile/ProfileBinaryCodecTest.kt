@@ -15,25 +15,42 @@ import io.github.altenhofen.pen.settings.HandwritingLanguage
 import io.github.altenhofen.pen.settings.InkLanguage
 import io.github.altenhofen.pen.settings.MotorSettings
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.abs
 import kotlin.random.Random
 
-/** The format v3 body: what it keeps, what it leaves out, and what quantization costs. */
+/** The format v4 body: what it keeps, what it leaves out, and what quantization costs. */
 class ProfileBinaryCodecTest {
     @Test
     fun roundTripKeepsEverySetting() {
         val tuned = MotorSettings.Default
             .withSettleMillis(900L)
             .withStrokeWidthDp(5.5f)
-            .withAmbiguityThreshold(0.2f)
             .withAllowFingerInput(true)
+            .withSpaceAfterFullWord(true)
+            .withRecognizeSpacesInHandwriting(true)
         val decoded = roundTrip(profileOf(settings = tuned))
         assertEquals(900L, decoded.settings.settleMillis)
         assertEquals(5.5f, decoded.settings.strokeWidthDp)
-        assertEquals(0.2f, decoded.settings.ambiguityThreshold)
         assertEquals(true, decoded.settings.allowFingerInput)
+        assertEquals(true, decoded.settings.spaceAfterFullWord)
+        assertEquals(true, decoded.settings.recognizeSpacesInHandwriting)
+    }
+
+    @Test
+    fun roundTripKeepsCustomWords() {
+        val decoded = roundTrip(profileOf(customWords = listOf("Monsgeek", "pen")))
+        assertEquals(listOf("Monsgeek", "pen"), decoded.customWords)
+    }
+
+    @Test
+    fun roundTripKeepsPinnedTrainingSamples() {
+        val decoded = roundTrip(
+            profileOf(words = listOf(wordSample("w-1", "Monsgeek", 1L, pinned = true))),
+        )
+        assertTrue(decoded.words.single().pinned)
     }
 
     @Test
@@ -145,8 +162,8 @@ class ProfileBinaryCodecTest {
         val plainJson = RealisticProfile.versionTwoJson(profile).size
         val versionTwoZip = RealisticProfile.encodeVersionTwo(profile).size
         val body = ProfileBinaryCodec.encode(profile).size
-        println("v2 JSON $plainJson, v2 zip $versionTwoZip, v3 body $body")
-        assertTrue("v2 zip $versionTwoZip, v3 body $body", body * 2 < versionTwoZip)
+        println("v2 JSON $plainJson, v2 zip $versionTwoZip, v4 body $body")
+        assertTrue("v2 zip $versionTwoZip, v4 body $body", body * 2 < versionTwoZip)
     }
 
     private fun matchable(recalls: List<WordRecall>) =
@@ -169,7 +186,8 @@ class ProfileBinaryCodecTest {
         settings: MotorSettings = MotorSettings.Default,
         clusters: List<PrototypeCluster> = listOf(cluster("train:8:session:0", '8', 0.1f)),
         words: List<WordSample> = emptyList(),
-    ) = PenProfile.create(settings, clusters, words)
+        customWords: List<String> = emptyList(),
+    ) = PenProfile.create(settings, clusters, words, customWords)
 
     private fun cluster(id: String, label: Char, magnitude: Float) = PrototypeCluster(
         ClusterId(id),
@@ -177,10 +195,11 @@ class ProfileBinaryCodecTest {
         FeatureVector.from(FloatArray(96) { index -> if (index % 3 == 2) 0f else magnitude * (index % 7 - 3) / 3f }),
     )
 
-    private fun wordSample(id: String, word: String, confirmedAt: Long) = WordSample(
+    private fun wordSample(id: String, word: String, confirmedAt: Long, pinned: Boolean = false) = WordSample(
         id,
         word,
         FeatureVector.from(FloatArray(WORD_SAMPLE_COUNT * 3) { it * 0.002f }, WORD_SAMPLE_COUNT),
         confirmedAt,
+        pinned,
     )
 }

@@ -2,6 +2,7 @@ package io.github.altenhofen.pen.profile
 
 import android.content.ContentResolver
 import android.net.Uri
+import io.github.altenhofen.pen.recognition.CustomWordStore
 import io.github.altenhofen.pen.recognition.PrototypeStore
 import io.github.altenhofen.pen.recognition.WordMemoryStore
 import io.github.altenhofen.pen.settings.MotorSettingsStore
@@ -11,10 +12,16 @@ internal class ProfileTransfer(
     private val settings: MotorSettingsStore,
     private val prototypes: PrototypeStore,
     private val words: WordMemoryStore,
+    private val customWords: CustomWordStore,
     private val resolver: ContentResolver,
 ) {
     suspend fun exportTo(uri: Uri, passphrase: CharArray) {
-        val profile = PenProfile.create(settings.readBlocking(), prototypes.loadOrSeed(), words.load().samples)
+        val profile = PenProfile.create(
+            settings.readBlocking(),
+            prototypes.loadOrSeed(),
+            words.load().samples,
+            customWords.load(),
+        )
         val stream = resolver.openOutputStream(uri) ?: throw ProfileTransferException("cannot open export stream")
         stream.use { ProfileVault.encrypt(it, profile, passphrase) }
     }
@@ -37,10 +44,6 @@ internal class ProfileTransfer(
         return ProfileVault.isVaultArchive(prefix)
     }
 
-    /**
-     * Decodes the whole archive before touching a store, so a wrong passphrase or a damaged file
-     * leaves the existing profile exactly as it was.
-     */
     suspend fun importFrom(uri: Uri, passphrase: CharArray?): PenProfile {
         val archive = read(uri)
         val profile = if (ProfileVault.isVaultArchive(archive)) {
@@ -50,6 +53,7 @@ internal class ProfileTransfer(
         }
         prototypes.replaceAll(profile.prototypes)
         words.replaceAll(profile.words)
+        customWords.replaceAll(profile.customWords)
         settings.save(profile.settings)
         return profile
     }

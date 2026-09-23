@@ -31,7 +31,8 @@ import javax.crypto.spec.SecretKeySpec
  * iteration count, the salt, or the nonce fails the tag instead of steering the reader.
  */
 internal object ProfileVault {
-    const val FORMAT_VERSION = 3
+    const val FORMAT_VERSION = 4
+    const val LEGACY_FORMAT_VERSION = 3
     const val HEADER_BYTES = 38
     const val MAGIC_BYTES = 4
 
@@ -80,7 +81,9 @@ internal object ProfileVault {
         if (!isVaultArchive(archive)) throw ProfileTransferException("not a pen profile archive")
         val header = archive.copyOf(HEADER_BYTES)
         val version = header[4].toInt()
-        if (version != FORMAT_VERSION) throw ProfileTransferException("unsupported format version $version")
+        if (version !in setOf(FORMAT_VERSION, LEGACY_FORMAT_VERSION)) {
+            throw ProfileTransferException("unsupported format version $version")
+        }
         if (header[5].toInt() != KDF_PBKDF2_HMAC_SHA256) {
             throw ProfileTransferException("unsupported key derivation ${header[5].toInt()}")
         }
@@ -101,7 +104,13 @@ internal object ProfileVault {
             throw ProfileTransferException(WRONG_PASSPHRASE, error, ProfileFailure.Passphrase)
         }
         return try {
-            ProfileBinaryCodec.decode(inflate(body))
+            val inflated = inflate(body)
+            try {
+                if (version == LEGACY_FORMAT_VERSION) ProfileBinaryCodec.decodeLegacyBody(inflated)
+                else ProfileBinaryCodec.decode(inflated)
+            } finally {
+                inflated.fill(0)
+            }
         } finally {
             body.fill(0)
         }

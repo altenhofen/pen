@@ -1,14 +1,17 @@
 <resources>
     <string name="settings_title">Ajustes del lápiz</string>
+    <string name="space_after_full_word">Espacio tras palabra completa</string>
+    <string name="space_after_full_word_hint">Tras elegir o escribir una palabra completa, escribe un espacio automáticamente.</string>
+    <string name="recognize_spaces_in_handwriting">Reconocer espacios al escribir</string>
+    <string name="recognize_spaces_in_handwriting_hint">Activado, los huecos entre palabras son espacios. Desactivado, un trazo es una palabra.</string>
     <string name="settle_window">Ventana de estabilización</string>
     <string name="stroke_width">Grosor del trazo</string>
-    <string name="ambiguity_threshold">Umbral de ambigüedad</string>
     <string name="allow_finger_input">Dedo y lápiz pasivo</string>
     <string name="allow_finger_input_hint">Aceptar el toque en el área de escritura del teclado. Actívalo si no usas un lápiz activo.</string>
     <string name="slider_label_format">%1$s: %2$s</string>
     <string name="settle_window_value">%1$d ms</string>
     <string name="stroke_width_value">%1$.1f dp</string>
-    <string name="ambiguity_value">%1$.2f</string>
+    <string name="action_my_words">Mis palabras</string>
     <string name="action_calibrate">Calibrar</string>
     <string name="action_set_default_keyboard">Establecer como teclado predeterminado</string>
     <string name="action_export_profile">Exportar perfil</string>

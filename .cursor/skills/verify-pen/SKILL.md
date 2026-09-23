@@ -5,7 +5,7 @@ description: Drive the pen Android app on a dedicated emulator and prove the lau
 
 # Verify pen
 
-`pen` is an Android app (`io.github.altenhofen.pen`). The launcher activity shows `Pen settings` with settle, stroke width, and ambiguity sliders, a `Finger and passive pen` switch, plus `Calibrate`, `Set as default keyboard`, `Export profile`, and `Import profile`. Calibrate opens a glyph picker, then a training canvas. Export and import open system document sheets. Set as default keyboard opens system input-method settings. The same package registers an input method the system lists as `pen ink` under on-screen keyboards. The IME ink canvas is not on the launcher. It appears only after the user enables that input method and focuses a text field in some other app. Unit and instrumented tests exist. They are not a user path.
+`pen` is an Android app (`io.github.altenhofen.pen`). The launcher activity shows `Pen settings` with toggles for auto-space after full words and recognizing spaces in handwriting, settle and stroke width sliders, a `Finger and passive pen` switch, `My words`, plus `Calibrate`, `Set as default keyboard`, `Export profile`, and `Import profile`. Calibrate opens a glyph picker, then a training canvas. Export and import open system document sheets. Set as default keyboard opens system input-method settings. The same package registers an input method the system lists as `pen ink` under on-screen keyboards. The IME ink canvas is not on the launcher. It appears only after the user enables that input method and focuses a text field in some other app. Unit and instrumented tests exist. They are not a user path.
 
 ## Launch
 
