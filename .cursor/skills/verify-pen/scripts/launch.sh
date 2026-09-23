@@ -37,7 +37,7 @@ boot="$(adb -s "$SERIAL" shell getprop sys.boot_completed | tr -d '\r')"
   ./gradlew :app:assembleDebug
 )
 adb -s "$SERIAL" install -r "$ROOT/app/build/outputs/apk/debug/app-debug.apk"
-adb -s "$SERIAL" shell am start -n io.github.altenhofen.pen/.MainActivity
+adb -s "$SERIAL" shell am start -n io.github.altenhofen.pen/.MainActivity -f 0x10008000
 
 for _ in $(seq 1 20); do
   dump="$(adb -s "$SERIAL" exec-out uiautomator dump /dev/tty 2>/dev/null || true)"

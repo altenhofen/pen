@@ -1,11 +1,11 @@
 ---
 name: verify-pen
-description: Drive the pen Android app on a dedicated emulator and prove the launcher settings, the 8 versus 9 calibration screen, the 0-9 and a-z fine-tune screen, profile export and import pickers, and the pen ink keyboard list entry. Use when changing MainActivity, settings, calibration, character training, profile transfer, the input method, or any user-visible launcher behavior, and before claiming those screens work.
+description: Drive the pen Android app on a dedicated emulator and prove the launcher settings, the Calibrate glyph picker and writing canvas, profile export and import pickers, Set as default keyboard, and the pen ink keyboard list entry. Use when changing MainActivity, settings, calibration, profile transfer, the input method, or any user-visible launcher behavior, and before claiming those screens work.
 ---
 
 # Verify pen
 
-`pen` is an Android app (`io.github.altenhofen.pen`). The launcher activity shows `Pen settings` with settle, stroke width, and ambiguity sliders plus `Calibrate 8 and 9`, `Fine-tune 0-9 and a-z`, `Export profile`, and `Import profile`. Calibrate and fine-tune open training canvases. Export and import open system document sheets. The same package registers an input method the system lists as `pen ink` under on-screen keyboards. The IME ink canvas is not on the launcher. It appears only after the user enables that input method and focuses a text field in some other app. Unit and instrumented tests exist. They are not a user path.
+`pen` is an Android app (`io.github.altenhofen.pen`). The launcher activity shows `Pen settings` with settle, stroke width, and ambiguity sliders plus `Calibrate`, `Set as default keyboard`, `Export profile`, and `Import profile`. Calibrate opens a glyph picker, then a training canvas. Export and import open system document sheets. Set as default keyboard opens system input-method settings. The same package registers an input method the system lists as `pen ink` under on-screen keyboards. The IME ink canvas is not on the launcher. It appears only after the user enables that input method and focuses a text field in some other app. Unit and instrumented tests exist. They are not a user path.
 
 ## Launch
 
@@ -35,7 +35,7 @@ Read-only. Exit `0` only when the serial is `emulator-5556`, `sys.boot_completed
 
 ## Drive
 
-Harness is `adb` on `emulator-5556`. Stable handles are the visible strings `Pen settings`, `Calibrate 8 and 9`, `Fine-tune 0-9 and a-z`, `Export profile`, `Import profile`, `Draw 8: 0 of 5 samples collected`, `Draw 0: 0 of 3 samples collected`, `pen-configuration.zip`, `Recent files`, and `pen ink`. There are no content descriptions or test tags.
+Harness is `adb` on `emulator-5556`. Stable handles are the visible strings `Pen settings`, `Calibrate`, `Set as default keyboard`, `Export profile`, `Import profile`, `Select characters to train`, `Start`, `Draw 0: 0 of 3 samples collected`, `pen-configuration.zip`, `Recent files`, and `pen ink`. There are no content descriptions or test tags. Drive against English `values/strings.xml`. `app_name` and `ime_name` are not translated.
 
 ```bash
 .cursor/skills/verify-pen/scripts/drive-settings.sh
@@ -49,15 +49,15 @@ Calibration is a second drive from the same activity.
 .cursor/skills/verify-pen/scripts/drive-calibration.sh
 ```
 
-Proof is the dump containing `text="Draw 8: 0 of 5 samples collected"` after a tap on `Calibrate 8 and 9`, plus the screenshot.
+Proof is the dump containing `text="Draw 0: 0 of 3 samples collected"` after a tap on `Calibrate`, a tap on `0`, and a tap on `Start`, plus the screenshot.
 
-Character fine-tune is a third drive from settings.
+Default keyboard is a third drive from settings.
 
 ```bash
-.cursor/skills/verify-pen/scripts/drive-character-fine-tune.sh
+.cursor/skills/verify-pen/scripts/drive-default-keyboard.sh
 ```
 
-Proof is the dump containing `text="Draw 0: 0 of 3 samples collected"` after a tap on `Fine-tune 0-9 and a-z`, plus the screenshot.
+Proof is the dump containing `text="pen ink"` after a tap on `Set as default keyboard`, plus the screenshot.
 
 Profile export is a fourth drive from settings.
 
@@ -110,8 +110,8 @@ Kills the emulator pid stored in `/tmp/pen-verify/emulator.pid`, then `adb -s em
 | `scripts/launch.sh` | Boot `emulator-5556`, install the debug APK, start `MainActivity`, wait until `Pen settings` is in the hierarchy. |
 | `scripts/doctor.sh` | Check serial, boot, package, and `versionName=1.0`. |
 | `scripts/drive-settings.sh` | Relaunch `MainActivity` and write proof under `artifacts/settings/`. |
-| `scripts/drive-calibration.sh` | Open calibration from settings and write proof under `artifacts/calibration/`. |
-| `scripts/drive-character-fine-tune.sh` | Open alphabet fine-tune from settings and write proof under `artifacts/character-fine-tune/`. |
+| `scripts/drive-calibration.sh` | Open Calibrate, pick `0`, Start, and write proof under `artifacts/calibration/`. |
+| `scripts/drive-default-keyboard.sh` | Open system IME settings from `Set as default keyboard` and write proof under `artifacts/default-keyboard/`. |
 | `scripts/drive-profile-export.sh` | Open the save sheet from `Export profile` and write proof under `artifacts/profile-export/`. |
 | `scripts/drive-profile-import.sh` | Open the document picker from `Import profile` and write proof under `artifacts/profile-import/`. |
 | `scripts/drive-ink-keyboard.sh` | Open on-screen keyboard settings and write proof under `artifacts/ink-keyboard/`. |

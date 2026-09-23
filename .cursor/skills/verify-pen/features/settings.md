@@ -1,13 +1,13 @@
 # Settings
 
-Settings is the first screen after the user opens pen. It shows the heading `Pen settings`, sliders for settle window, stroke width, and ambiguity threshold, a `Calibrate 8 and 9` button, a `Fine-tune 0-9 and a-z` button, an `Export profile` button, and an `Import profile` button.
+Settings is the first screen after the user opens pen. It shows the heading `Pen settings`, sliders for settle window, stroke width, and ambiguity threshold, a `Calibrate` button, a `Set as default keyboard` button, an `Export profile` button, and an `Import profile` button.
 
 ## Sub-features
 
 - `settings-launch` shows `Pen settings` after the user opens the app from the launcher.
 - `settings-sliders` shows `Settle window`, `Stroke width`, and `Ambiguity threshold` on that same screen.
-- `settings-calibrate-entry` shows the `Calibrate 8 and 9` button.
-- `settings-fine-tune-entry` shows the `Fine-tune 0-9 and a-z` button.
+- `settings-calibrate-entry` shows the `Calibrate` button.
+- `settings-default-keyboard-entry` shows the `Set as default keyboard` button.
 - `settings-export-entry` shows the `Export profile` button.
 - `settings-import-entry` shows the `Import profile` button.
 
@@ -26,7 +26,7 @@ Preconditions:
 - **Open the app.** The user taps the `pen` launcher icon. Run `adb -s emulator-5556 shell am start -n io.github.altenhofen.pen/.MainActivity`. Exit code `0`. Stdout contains `Starting: Intent { cmp=io.github.altenhofen.pen/.MainActivity }`.
 - **Read the heading.** The screen shows `Pen settings`. Run `adb -s emulator-5556 exec-out uiautomator dump /dev/tty`. The dump contains `text="Pen settings"`.
 - **Read the sliders.** The dump also contains `text="Settle window: 600 ms"`, `text="Stroke width: 6.0 dp"`, and `text="Ambiguity threshold: 0.15"` on a fresh install.
-- **Read export and import.** The dump also contains `text="Export profile"` and `text="Import profile"`.
+- **Read the actions.** The dump also contains `text="Calibrate"`, `text="Set as default keyboard"`, `text="Export profile"`, and `text="Import profile"`.
 - **Proof.** Save the dump and a screenshot. Run `.cursor/skills/verify-pen/scripts/drive-settings.sh`. `artifacts/settings/hierarchy.xml` contains `text="Pen settings"` and `artifacts/settings/screen.png` shows the same words.
 
 ## Gotchas
@@ -34,5 +34,7 @@ Preconditions:
 - `uiautomator dump` with no path writes `/sdcard/window_dump.xml` on the device. Proof must use `exec-out uiautomator dump /dev/tty` or pull that file. A screenshot alone can miss the text node.
 - Match `text="Pen settings"`. There is no `Hello Android!` text.
 - Slider labels include the live value, so `Settle window` alone is not the node text. Match the full `Settle window: 600 ms` string on a default install, or grep `Settle window`.
-- The IME ink canvas is a separate system keyboard. It is not on this screen. Calibration is a later screen behind `Calibrate 8 and 9`.
+- There is no `Calibrate 8 and 9` or `Fine-tune 0-9 and a-z` button.
+- The IME ink canvas is a separate system keyboard. It is not on this screen. Calibration is a later screen behind `Calibrate`.
 - Driving a serial other than `emulator-5556` can hit the user's own emulator. Doctor must pass first.
+- After `Set as default keyboard`, the system IME screen stays on top. Drive scripts start MainActivity with `-f 0x10008000` so the next recipe actually shows Pen settings.

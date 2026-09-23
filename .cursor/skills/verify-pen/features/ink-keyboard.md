@@ -9,6 +9,7 @@ After pen is installed, Android keyboard settings lists an input method named `p
 ## How to get to it (user POV)
 
 - Open Settings, then System, then Keyboards, then On-screen keyboard. The activity intent is `android.settings.INPUT_METHOD_SETTINGS`.
+- From Pen settings, tap `Set as default keyboard`. That path is covered by [default-keyboard](./default-keyboard.md).
 
 ## Driving it with adb
 

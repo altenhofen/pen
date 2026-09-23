@@ -1,14 +1,15 @@
 # Calibration
 
-Calibration is the training screen behind `Calibrate 8 and 9` on Pen settings. It asks the user to draw five samples of `8`, then five of `9`, on an in-app canvas. That canvas is not the IME.
+Calibration is the training minigame behind `Calibrate` on Pen settings. It first shows a grid of `0-9`, `A-Z`, and `a-z`. The user selects glyphs, then taps `Start`. The writing canvas asks for three samples of the first selected glyph. `Next` stays disabled until those three samples exist. That canvas is not the IME.
 
 ## Sub-features
 
-- `calibration-open` shows `Draw 8: 0 of 5 samples collected` after the user taps `Calibrate 8 and 9`.
+- `calibration-picker` shows `Select characters to train` after the user taps `Calibrate`.
+- `calibration-write-open` shows `Draw 0: 0 of 3 samples collected` after the user selects `0` and taps `Start`.
 
 ## How to get to it (user POV)
 
-- Open pen, then tap `Calibrate 8 and 9` on the settings screen.
+- Open pen, then tap `Calibrate` on the settings screen, pick at least one glyph, then tap `Start`.
 
 ## Driving it with adb
 
@@ -18,13 +19,14 @@ Preconditions:
 - Package `io.github.altenhofen.pen` is installed at `versionName=1.0`.
 - Settings is showing. Start `MainActivity` first if it is not.
 
-- **Open settings.** The user opens pen. Run `adb -s emulator-5556 shell am start -n io.github.altenhofen.pen/.MainActivity`. Exit code `0`. Wait until a dump contains `text="Calibrate 8 and 9"`.
-- **Open calibration.** The user taps `Calibrate 8 and 9`. Run `.cursor/skills/verify-pen/scripts/drive-calibration.sh`. The script taps the clickable parent of that text node.
-- **Read the prompt.** The screen shows `Draw 8: 0 of 5 samples collected`. `artifacts/calibration/hierarchy.xml` contains that exact `text=` value.
+- **Open settings.** The user opens pen. Run `adb -s emulator-5556 shell am start -n io.github.altenhofen.pen/.MainActivity`. Exit code `0`. Wait until a dump contains `text="Calibrate"`.
+- **Open calibration.** The user taps `Calibrate`, taps `0`, then taps `Start`. Run `.cursor/skills/verify-pen/scripts/drive-calibration.sh`. The script taps the innermost clickable ancestor of each of those labels.
+- **Read the prompt.** The screen shows `Draw 0: 0 of 3 samples collected`. `artifacts/calibration/hierarchy.xml` contains that exact `text=` value.
 
 ## Gotchas
 
-- Tap the clickable parent of `Calibrate 8 and 9`, not only the text bounds. `drive-calibration.sh` taps that point until the dump contains `text="Draw 8: 0 of 5 samples collected"`. A single tap can miss.
+- Tap the innermost clickable ancestor of `Calibrate`. A regex from the first clickable node can hit the wrong button.
+- `Start` is not clickable until at least one glyph is selected. Tap `0` first.
 - Finger strokes work on this canvas. The IME canvas still rejects fingers.
-- The training canvas uses the cream ink background. Proof is the hierarchy text, not whether the heading is easy to see in a screenshot.
+- Completing three samples and `Next` is optional for verification. Proof is the first write prompt after Start.
 - This screen is not the IME. Do not look for `pen ink` here.

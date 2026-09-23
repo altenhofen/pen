@@ -1,4 +1,30 @@
 <resources>
-    <string name="app_name">pen</string>
-    <string name="ime_name">pen ink</string>
+    <string name="app_name" translatable="false">pen</string>
+    <string name="ime_name" translatable="false">pen ink</string>
+    <string name="settings_title">Pen settings</string>
+    <string name="settle_window">Settle window</string>
+    <string name="stroke_width">Stroke width</string>
+    <string name="ambiguity_threshold">Ambiguity threshold</string>
+    <string name="slider_label_format">%1$s: %2$s</string>
+    <string name="settle_window_value">%1$d ms</string>
+    <string name="stroke_width_value">%1$.1f dp</string>
+    <string name="ambiguity_value">%1$.2f</string>
+    <string name="action_calibrate">Calibrate</string>
+    <string name="action_set_default_keyboard">Set as default keyboard</string>
+    <string name="action_export_profile">Export profile</string>
+    <string name="action_import_profile">Import profile</string>
+    <string name="transfer_exported">Exported</string>
+    <string name="transfer_export_failed">Export failed</string>
+    <string name="transfer_imported">Imported</string>
+    <string name="transfer_import_failed">Import failed</string>
+    <string name="calibrate_title">Calibrate</string>
+    <string name="calibrate_pick_prompt">Select characters to train</string>
+    <string name="action_select_all">Select all</string>
+    <string name="action_select_none">Select none</string>
+    <string name="action_start">Start</string>
+    <string name="action_next">Next</string>
+    <string name="action_done">Done</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="calibrate_write_prompt">Draw %1$s: %2$d of %3$d samples collected</string>
+    <string name="calibrate_complete">Training saved for %1$d characters</string>
 </resources>
