@@ -14,6 +14,7 @@
     <string name="settle_window_value">%1$d ms</string>
     <string name="stroke_width_value">%1$.1f dp</string>
     <string name="action_my_words">My words</string>
+    <string name="action_gestures">Gestures</string>
     <string name="action_calibrate">Calibrate</string>
     <string name="action_set_default_keyboard">Set as default keyboard</string>
     <string name="action_export_profile">Export profile</string>

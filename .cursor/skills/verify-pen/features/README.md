@@ -37,9 +37,9 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 
 ## Features
 
-- [Settings](./settings.md) covers the launcher activity, IME toggles, motor sliders, the `Finger and passive pen` switch, `My words`, `Calibrate`, `Set as default keyboard`, `Export profile`, and `Import profile`.
+- [Settings](./settings.md) covers the launcher activity, IME toggles, motor sliders, the `Finger and passive pen` switch, `My words`, `Gestures`, `Calibrate`, `Set as default keyboard`, `Export profile`, and `Import profile`.
 - [Calibration](./calibration.md) covers the glyph picker and writing canvas behind `Calibrate`.
-- [Gestures](./gestures.md) covers the `Gestures` tab and action picker inside `Calibrate`.
+- [Gestures](./gestures.md) covers the top-level `Gestures` button and action picker.
 - [Default keyboard](./default-keyboard.md) covers the settings button that opens system input-method settings.
 - [Profile export](./profile-export.md) covers the save sheet opened from `Export profile`.
 - [Profile import](./profile-import.md) covers the open-document picker opened from `Import profile`.

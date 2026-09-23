@@ -38,6 +38,7 @@ import io.github.altenhofen.pen.settings.AppLocales
 import io.github.altenhofen.pen.settings.MotorSettings
 import io.github.altenhofen.pen.settings.MotorSettingsStore
 import io.github.altenhofen.pen.ui.CalibrationMinigameScreen
+import io.github.altenhofen.pen.ui.GestureCalibrationScreen
 import io.github.altenhofen.pen.ui.MyWordEntry
 import io.github.altenhofen.pen.ui.MyWordTrainingScreen
 import io.github.altenhofen.pen.ui.MyWordsScreen
@@ -53,6 +54,7 @@ import java.util.UUID
 private enum class LauncherScreen {
     Settings,
     Calibrate,
+    Gestures,
     MyWords,
     MyWordTrain,
 }
@@ -119,6 +121,7 @@ class MainActivity : AppCompatActivity() {
                             current = current,
                             onUpdate = { transform -> scope.launch { settingsStore.update(transform) } },
                             onCalibrate = { screen = LauncherScreen.Calibrate },
+                            onGestures = { screen = LauncherScreen.Gestures },
                             onMyWords = { myWords = loadMyWords(); screen = LauncherScreen.MyWords },
                             onSetDefaultKeyboard = {
                                 startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
@@ -137,6 +140,12 @@ class MainActivity : AppCompatActivity() {
                             modifier = Modifier.padding(innerPadding),
                         )
                         LauncherScreen.Calibrate -> CalibrationMinigameScreen(
+                            recognizer = recognizer,
+                            capture = current.capture(),
+                            onDone = { screen = LauncherScreen.Settings },
+                            modifier = Modifier.padding(innerPadding),
+                        )
+                        LauncherScreen.Gestures -> GestureCalibrationScreen(
                             recognizer = recognizer,
                             capture = current.capture(),
                             onDone = { screen = LauncherScreen.Settings },

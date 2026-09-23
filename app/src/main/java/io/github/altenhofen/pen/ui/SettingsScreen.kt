@@ -38,6 +38,7 @@ internal fun SettingsScreen(
     current: MotorSettings,
     onUpdate: ((MotorSettings) -> MotorSettings) -> Unit,
     onCalibrate: () -> Unit,
+    onGestures: () -> Unit,
     onMyWords: () -> Unit,
     onSetDefaultKeyboard: () -> Unit,
     onExport: () -> Unit,
@@ -98,6 +99,9 @@ internal fun SettingsScreen(
         )
         Button(onClick = onMyWords) {
             Text(stringResource(R.string.action_my_words))
+        }
+        Button(onClick = onGestures) {
+            Text(stringResource(R.string.action_gestures))
         }
         Button(onClick = onCalibrate) {
             Text(stringResource(R.string.action_calibrate))

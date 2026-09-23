@@ -1,6 +1,6 @@
 # Settings
 
-Settings is the first screen after the user opens pen. It shows the heading `Pen settings`, toggles for `Add space after full word` and `Recognize spaces in handwriting`, sliders for settle window and stroke width, a `Finger and passive pen` switch, a `My words` button, a `Calibrate` button, a `Set as default keyboard` button, an `Export profile` button, and an `Import profile` button.
+Settings is the first screen after the user opens pen. It shows the heading `Pen settings`, toggles for `Add space after full word` and `Recognize spaces in handwriting`, sliders for settle window and stroke width, a `Finger and passive pen` switch, a `My words` button, a `Gestures` button, a `Calibrate` button, a `Set as default keyboard` button, an `Export profile` button, and an `Import profile` button.
 
 ## Sub-features
 
@@ -9,6 +9,7 @@ Settings is the first screen after the user opens pen. It shows the heading `Pen
 - `settings-sliders` shows `Settle window` and `Stroke width` on that same screen.
 - `settings-finger-input` shows the `Finger and passive pen` switch (off by default on a fresh install).
 - `settings-my-words-entry` shows the `My words` button.
+- `settings-gestures-entry` shows the `Gestures` button.
 - `settings-calibrate-entry` shows the `Calibrate` button.
 - `settings-default-keyboard-entry` shows the `Set as default keyboard` button.
 - `settings-export-entry` shows the `Export profile` button.

@@ -37,20 +37,28 @@ sleep 1
 dump=""
 for _ in $(seq 1 20); do
   dump="$(adb -s "$SERIAL" exec-out uiautomator dump /dev/tty 2>/dev/null || true)"
-  if printf '%s' "$dump" | grep -q 'text="Calibrate"'; then
+  if printf '%s' "$dump" | grep -q 'text="Gestures"'; then
     break
   fi
   sleep 1
 done
-printf '%s' "$dump" | grep -q 'text="Calibrate"'
+printf '%s' "$dump" | grep -q 'text="Gestures"'
 
-tap="$(printf '%s' "$dump" | tap_label Calibrate)"
-adb -s "$SERIAL" shell input tap $tap
-sleep 1
-
-dump="$(adb -s "$SERIAL" exec-out uiautomator dump /dev/tty 2>/dev/null || true)"
-tap="$(printf '%s' "$dump" | tap_label Gestures)"
-echo "tap gestures tab: $tap" >>"$OUT/drive.log"
+tap="$(printf '%s' "$dump" | python3 -c '
+import re, sys
+xml = sys.stdin.read()
+needle = "text=\"Gestures\""
+idx = xml.find(needle)
+if idx < 0:
+    raise SystemExit("no Gestures")
+window = xml[idx : idx + 1200]
+m = re.search(r"bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"", window)
+if not m:
+    raise SystemExit("no bounds for Gestures")
+x1, y1, x2, y2 = map(int, m.groups())
+print((x1 + x2) // 2, (y1 + y2) // 2)
+')"
+echo "tap gestures: $tap" >>"$OUT/drive.log"
 adb -s "$SERIAL" shell input tap $tap
 sleep 1
 
