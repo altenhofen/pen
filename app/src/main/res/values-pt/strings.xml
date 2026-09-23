@@ -15,6 +15,15 @@
     <string name="transfer_export_failed">Falha na exportação</string>
     <string name="transfer_imported">Importado</string>
     <string name="transfer_import_failed">Falha na importação</string>
+    <string name="transfer_wrong_passphrase">Senha incorreta, ou o arquivo foi alterado</string>
+    <string name="passphrase_protect_title">Proteja esta exportação</string>
+    <string name="passphrase_unlock_title">Desbloqueie este perfil</string>
+    <string name="passphrase_label">Senha</string>
+    <string name="passphrase_repeat_label">Repita a senha</string>
+    <string name="passphrase_rule">Pelo menos 8 caracteres. Sua escrita não pode ser lida sem ela, e ela não pode ser recuperada.</string>
+    <string name="passphrase_mismatch">As duas entradas não coincidem</string>
+    <string name="action_encrypt_and_save">Criptografar e salvar</string>
+    <string name="action_unlock">Desbloquear</string>
     <string name="calibrate_title">Calibrar</string>
     <string name="calibrate_pick_prompt">Selecione os caracteres para treinar</string>
     <string name="action_select_all">Selecionar todos</string>

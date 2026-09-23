@@ -19,6 +19,15 @@
     <string name="transfer_export_failed">Export failed</string>
     <string name="transfer_imported">Imported</string>
     <string name="transfer_import_failed">Import failed</string>
+    <string name="transfer_wrong_passphrase">Wrong passphrase, or the file was changed</string>
+    <string name="passphrase_protect_title">Protect this export</string>
+    <string name="passphrase_unlock_title">Unlock this profile</string>
+    <string name="passphrase_label">Passphrase</string>
+    <string name="passphrase_repeat_label">Repeat passphrase</string>
+    <string name="passphrase_rule">At least 8 characters. Your handwriting cannot be read back without it, and it cannot be recovered.</string>
+    <string name="passphrase_mismatch">The two entries do not match</string>
+    <string name="action_encrypt_and_save">Encrypt and save</string>
+    <string name="action_unlock">Unlock</string>
     <string name="calibrate_title">Calibrate</string>
     <string name="calibrate_pick_prompt">Select characters to train</string>
     <string name="action_select_all">Select all</string>

@@ -21,13 +21,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
+import io.github.altenhofen.pen.profile.ProfileFailure
 import io.github.altenhofen.pen.profile.ProfileTransfer
+import io.github.altenhofen.pen.profile.ProfileTransferException
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
 import io.github.altenhofen.pen.recognition.PrototypeStore
 import io.github.altenhofen.pen.recognition.WordMemoryStore
 import io.github.altenhofen.pen.settings.MotorSettings
 import io.github.altenhofen.pen.settings.MotorSettingsStore
 import io.github.altenhofen.pen.ui.CalibrationMinigameScreen
+import io.github.altenhofen.pen.ui.PassphraseRequest
 import io.github.altenhofen.pen.ui.SettingsScreen
 import io.github.altenhofen.pen.ui.theme.PenTheme
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +48,7 @@ internal enum class ProfileTransferStatus(@param:StringRes val messageRes: Int) 
     ExportFailed(R.string.transfer_export_failed),
     Imported(R.string.transfer_imported),
     ImportFailed(R.string.transfer_import_failed),
+    WrongPassphrase(R.string.transfer_wrong_passphrase),
 }
 
 class MainActivity : ComponentActivity() {
@@ -59,14 +63,18 @@ class MainActivity : ComponentActivity() {
         )
     }
     private val transferStatus = MutableStateFlow<ProfileTransferStatus?>(null)
+    private val passphraseRequest = MutableStateFlow<PassphraseRequest?>(null)
+
+    /** Held only across the save sheet, which cannot carry it, and zeroed the moment export ends. */
+    private var exportPassphrase: CharArray? = null
 
     private val exportDocument = registerForActivityResult(
-        ActivityResultContracts.CreateDocument("application/zip"),
+        ActivityResultContracts.CreateDocument(ARCHIVE_MIME_TYPE),
     ) { uri -> handleExport(uri) }
 
     private val importDocument = registerForActivityResult(
         ActivityResultContracts.OpenDocument(),
-    ) { uri -> handleImport(uri) }
+    ) { uri -> handleImportFile(uri) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,6 +83,7 @@ class MainActivity : ComponentActivity() {
             PenTheme {
                 val current by settingsStore.values.collectAsState(initial = MotorSettings.Default)
                 val status by transferStatus.collectAsState()
+                val passphrase by passphraseRequest.collectAsState()
                 val scope = rememberCoroutineScope()
                 var screen by rememberSaveable { mutableStateOf(LauncherScreen.Settings) }
                 BackHandler(enabled = screen != LauncherScreen.Settings) { screen = LauncherScreen.Settings }
@@ -87,8 +96,11 @@ class MainActivity : ComponentActivity() {
                             onSetDefaultKeyboard = {
                                 startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
                             },
-                            onExport = { exportDocument.launch("pen-configuration.zip") },
-                            onImport = { importDocument.launch(arrayOf("application/zip", "*/*")) },
+                            onExport = { passphraseRequest.value = PassphraseRequest.Export },
+                            onImport = { importDocument.launch(arrayOf("*/*")) },
+                            passphraseRequest = passphrase,
+                            onPassphrase = ::onPassphrase,
+                            onPassphraseCancelled = { passphraseRequest.value = null },
                             status = status?.let { getString(it.messageRes) },
                             modifier = Modifier.padding(innerPadding),
                         )
@@ -104,30 +116,78 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun onPassphrase(request: PassphraseRequest, passphrase: CharArray) {
+        passphraseRequest.value = null
+        when (request) {
+            PassphraseRequest.Export -> {
+                exportPassphrase = passphrase
+                exportDocument.launch(ARCHIVE_FILE_NAME)
+            }
+            is PassphraseRequest.Import -> handleImport(request.uri, passphrase)
+        }
+    }
+
     private fun handleExport(uri: Uri?) {
-        if (uri == null) return
+        val passphrase = exportPassphrase
+        exportPassphrase = null
+        if (uri == null || passphrase == null) {
+            passphrase?.fill('\u0000')
+            return
+        }
         lifecycleScope.launch {
             transferStatus.value = withContext(Dispatchers.IO) {
-                runCatching { transfer.exportTo(uri) }.fold(
-                    onSuccess = { ProfileTransferStatus.Exported },
-                    onFailure = { ProfileTransferStatus.ExportFailed },
-                )
+                try {
+                    runCatching { transfer.exportTo(uri, passphrase) }.fold(
+                        onSuccess = { ProfileTransferStatus.Exported },
+                        onFailure = { ProfileTransferStatus.ExportFailed },
+                    )
+                } finally {
+                    passphrase.fill('\u0000')
+                }
             }
         }
     }
 
-    private fun handleImport(uri: Uri?) {
+    private fun handleImportFile(uri: Uri?) {
         if (uri == null) return
         lifecycleScope.launch {
+            val encrypted = withContext(Dispatchers.IO) { runCatching { transfer.needsPassphrase(uri) } }
+            encrypted.fold(
+                onSuccess = { needed ->
+                    if (needed) passphraseRequest.value = PassphraseRequest.Import(uri) else handleImport(uri, null)
+                },
+                onFailure = { transferStatus.value = ProfileTransferStatus.ImportFailed },
+            )
+        }
+    }
+
+    private fun handleImport(uri: Uri, passphrase: CharArray?) {
+        lifecycleScope.launch {
             transferStatus.value = withContext(Dispatchers.IO) {
-                runCatching {
-                    transfer.importFrom(uri)
-                    recognizer.reload()
-                }.fold(
-                    onSuccess = { ProfileTransferStatus.Imported },
-                    onFailure = { ProfileTransferStatus.ImportFailed },
-                )
+                try {
+                    runCatching {
+                        transfer.importFrom(uri, passphrase)
+                        recognizer.reload()
+                    }.fold(
+                        onSuccess = { ProfileTransferStatus.Imported },
+                        onFailure = { error -> failureStatus(error) },
+                    )
+                } finally {
+                    passphrase?.fill('\u0000')
+                }
             }
         }
+    }
+
+    private fun failureStatus(error: Throwable): ProfileTransferStatus =
+        if (error is ProfileTransferException && error.failure == ProfileFailure.Passphrase) {
+            ProfileTransferStatus.WrongPassphrase
+        } else {
+            ProfileTransferStatus.ImportFailed
+        }
+
+    private companion object {
+        const val ARCHIVE_MIME_TYPE = "application/octet-stream"
+        const val ARCHIVE_FILE_NAME = "pen-profile.penbak"
     }
 }
