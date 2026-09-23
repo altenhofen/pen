@@ -5,17 +5,25 @@ import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
-import io.github.altenhofen.pen.recognition.GlyphRecognizer
-import io.github.altenhofen.pen.recognition.PrototypeStore
-import io.github.altenhofen.pen.recognition.PrototypeUpdate
-import io.github.altenhofen.pen.recognition.RecognitionMatch
+import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
+import io.github.altenhofen.pen.recognition.Feedback
+import io.github.altenhofen.pen.recognition.RecognitionResult
+import io.github.altenhofen.pen.settings.MotorSettings
+import io.github.altenhofen.pen.settings.MotorSettingsStore
 
 class PenInputMethodService : InputMethodService() {
-    private val recognizer = GlyphRecognizer.seeded()
+    private lateinit var settings: MotorSettingsStore
+    private lateinit var recognizer: AdaptiveRecognizer
+    private var activeSettings: MotorSettings = MotorSettings.Default
     private var canvas: DrawingCanvasView? = null
-    private var store: PrototypeStore? = null
-    private var pending: RecognitionMatch? = null
+    private var pending: RecognitionResult? = null
     private var pendingAt: Long = 0L
+
+    override fun onCreate() {
+        super.onCreate()
+        settings = MotorSettingsStore.open(this)
+        recognizer = AdaptiveRecognizer.open(this)
+    }
 
     override fun onCreateInputView(): View {
         val view = DrawingCanvasView(this)
@@ -26,24 +34,17 @@ class PenInputMethodService : InputMethodService() {
         )
         view.isFocusable = true
         view.isFocusableInTouchMode = true
+        view.configure(activeSettings.capture())
         view.setOnGlyphSettledListener { strokes ->
-            val match = recognizer.recognize(strokes) ?: return@setOnGlyphSettledListener
+            val result = recognizer.recognize(strokes, activeSettings.ambiguityThreshold)
+                ?: return@setOnGlyphSettledListener
             acceptPending()
-            currentInputConnection?.commitText(match.character.toString(), 1)
-            pending = match
+            currentInputConnection?.commitText(result.winner.character.toString(), 1)
+            pending = result
             pendingAt = SystemClock.elapsedRealtime()
         }
         canvas = view
         return view
-    }
-
-    override fun onCreate() {
-        super.onCreate()
-        val opened = PrototypeStore.open(this)
-        store = opened
-        opened.loadOrSeed().forEach { (label, values) ->
-            recognizer.replacePrototype(label, values)
-        }
     }
 
     override fun onUpdateSelection(
@@ -58,7 +59,7 @@ class PenInputMethodService : InputMethodService() {
         val last = pending ?: return
         val withinWindow = SystemClock.elapsedRealtime() - pendingAt <= REJECT_WINDOW_MS
         if (withinWindow && newSelStart < oldSelStart) {
-            apply(last.character, PrototypeUpdate.repel(recognizer.prototypeValues(last.character), last.sample))
+            recognizer.feedback(last, Feedback.Rejected)
             pending = null
         }
     }
@@ -66,30 +67,20 @@ class PenInputMethodService : InputMethodService() {
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         currentInputConnection?.finishComposingText()
+        activeSettings = settings.readBlocking()
+        canvas?.configure(activeSettings.capture())
+        recognizer.reload()
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
         canvas?.cancelPendingGlyph()
-        canvas = null
         super.onFinishInputView(finishingInput)
     }
 
     private fun acceptPending() {
         val last = pending ?: return
-        apply(
-            last.character,
-            PrototypeUpdate.attract(
-                recognizer.prototypeValues(last.character),
-                last.sample,
-                PrototypeUpdate.ACCEPT_REWARD,
-            ),
-        )
+        recognizer.feedback(last, Feedback.Accepted)
         pending = null
-    }
-
-    private fun apply(label: Char, values: FloatArray) {
-        recognizer.replacePrototype(label, values)
-        store?.save(label, values)
     }
 
     private companion object {

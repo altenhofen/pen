@@ -1,63 +1,37 @@
 package io.github.altenhofen.pen.recognition
 
-import io.github.altenhofen.pen.ime.Stroke
-
 enum class DistanceMetric {
     EUCLIDEAN,
     DTW,
 }
 
-data class RecognitionMatch(
-    val character: Char,
-    val distance: Float,
-    val sample: FloatArray,
-)
+internal class GlyphRecognizer(private val metric: DistanceMetric = DistanceMetric.DTW) {
+    private var clusters: List<PrototypeCluster> = emptyList()
 
-class GlyphRecognizer private constructor(
-    private val metric: DistanceMetric,
-    private val prototypes: MutableList<Pair<Char, FeatureVector>>,
-) {
-    fun prototypeValues(label: Char): FloatArray =
-        prototypes.first { it.first == label }.second.copyValues()
-
-    fun replacePrototype(label: Char, values: FloatArray) {
-        val index = prototypes.indexOfFirst { it.first == label }
-        require(index >= 0)
-        prototypes[index] = label to FeatureVector.from(values)
-    }
-    fun recognize(strokes: List<Stroke>): RecognitionMatch? {
-        val polylines = strokes.map { stroke -> stroke.points().map { Point2(it.x, it.y) } }
-        val features = preprocessPolylines(polylines) ?: return null
-        return best(features)
+    fun replaceAll(clusters: List<PrototypeCluster>) {
+        require(clusters.isNotEmpty())
+        this.clusters = clusters.toList()
     }
 
-    private fun best(features: FeatureVector): RecognitionMatch {
-        var winner = prototypes.first()
-        var bestDistance = distance(features, winner.second)
-        for (index in 1 until prototypes.size) {
-            val candidate = prototypes[index]
-            val candidateDistance = distance(features, candidate.second)
-            if (candidateDistance < bestDistance) {
-                winner = candidate
-                bestDistance = candidateDistance
-            }
-        }
-        return RecognitionMatch(winner.first, bestDistance, features.copyValues())
+    fun replace(cluster: PrototypeCluster) {
+        clusters = clusters.map { if (it.id == cluster.id) cluster else it }
+    }
+
+    fun rank(sample: FeatureVector, threshold: Float): RecognitionResult {
+        check(clusters.isNotEmpty()) { "rank before replaceAll" }
+        val ranked = clusters
+            .map { RankedMatch(it.label, it.id, distance(sample, it.vector)) }
+            .groupBy { it.character }
+            .values
+            .map { perLabel -> perLabel.minBy { it.distance } }
+            .sortedBy { it.distance }
+        val winner = ranked.first()
+        val gap = ranked.getOrNull(1)?.let { it.distance - winner.distance } ?: Float.POSITIVE_INFINITY
+        return RecognitionResult(winner, ranked, Ambiguity(gap, threshold, gap < threshold), sample)
     }
 
     private fun distance(left: FeatureVector, right: FeatureVector): Float = when (metric) {
         DistanceMetric.EUCLIDEAN -> meanEuclidean(left, right)
         DistanceMetric.DTW -> bandedDtw(left, right)
-    }
-
-    companion object {
-        fun seeded(metric: DistanceMetric = DistanceMetric.DTW): GlyphRecognizer {
-            val prototypes = seedLabels.map { label ->
-                val features = preprocessPolylines(seedPolylines(label))
-                    ?: error("seed $label failed to preprocess")
-                label to features
-            }
-            return GlyphRecognizer(metric, prototypes.toMutableList())
-        }
     }
 }
