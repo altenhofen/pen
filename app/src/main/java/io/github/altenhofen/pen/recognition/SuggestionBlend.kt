@@ -84,7 +84,7 @@ internal class WordMemorySource(
     }
 
     companion object {
-        const val WORD_MATCH_DISTANCE = 0.025f
+        const val WORD_MATCH_DISTANCE = 0.04f
         const val MATCH_WEIGHT = 2f
         const val PRIOR_WEIGHT = 0.6f
     }
