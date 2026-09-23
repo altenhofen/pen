@@ -5,10 +5,13 @@ import io.github.altenhofen.pen.recognition.FeatureVector
 import io.github.altenhofen.pen.recognition.PrototypeCluster
 import io.github.altenhofen.pen.settings.MotorSettings
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.zip.ZipEntry
+import java.util.zip.ZipException
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
@@ -59,7 +62,11 @@ internal object ProfileArchiveCodec {
             throw error
         } catch (error: IllegalArgumentException) {
             throw ProfileTransferException(error.message ?: "invalid archive", error)
-        } catch (error: Exception) {
+        } catch (error: SerializationException) {
+            throw ProfileTransferException("invalid archive", error)
+        } catch (error: ZipException) {
+            throw ProfileTransferException("invalid archive", error)
+        } catch (error: IOException) {
             throw ProfileTransferException("invalid archive", error)
         }
     }

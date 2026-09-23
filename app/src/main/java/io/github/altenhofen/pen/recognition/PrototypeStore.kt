@@ -80,8 +80,6 @@ internal class PrototypeStore(private val dao: PrototypeDao) {
         return dao.all().map { it.toCluster() }
     }
 
-    fun snapshot(): List<PrototypeCluster> = loadOrSeed()
-
     fun replaceAll(clusters: List<PrototypeCluster>) {
         require(clusters.isNotEmpty()) { "replaceAll requires at least one cluster" }
         dao.replaceAll(clusters.map { it.toRow() })

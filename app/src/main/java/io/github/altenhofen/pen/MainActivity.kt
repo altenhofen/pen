@@ -28,6 +28,7 @@ import io.github.altenhofen.pen.ui.CharacterFineTuneScreen
 import io.github.altenhofen.pen.ui.SettingsScreen
 import io.github.altenhofen.pen.ui.theme.PenTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -43,7 +44,7 @@ class MainActivity : ComponentActivity() {
     private val transfer by lazy {
         ProfileTransfer(settingsStore, PrototypeStore.open(applicationContext), contentResolver)
     }
-    private var onTransferResult: ((String) -> Unit)? = null
+    private val transferStatus = MutableStateFlow<String?>(null)
 
     private val exportDocument = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/zip"),
@@ -59,10 +60,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             PenTheme {
                 val current by settingsStore.values.collectAsState(initial = MotorSettings.Default)
+                val status by transferStatus.collectAsState()
                 val scope = rememberCoroutineScope()
                 var screen by rememberSaveable { mutableStateOf(LauncherScreen.Settings) }
-                var transferStatus by rememberSaveable { mutableStateOf<String?>(null) }
-                onTransferResult = { transferStatus = it }
                 BackHandler(enabled = screen != LauncherScreen.Settings) { screen = LauncherScreen.Settings }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when (screen) {
@@ -73,7 +73,7 @@ class MainActivity : ComponentActivity() {
                             onFineTune = { screen = LauncherScreen.FineTuneAlphabet },
                             onExport = { exportDocument.launch("pen-configuration.zip") },
                             onImport = { importDocument.launch(arrayOf("application/zip", "*/*")) },
-                            status = transferStatus,
+                            status = status,
                             modifier = Modifier.padding(innerPadding),
                         )
                         LauncherScreen.Calibrate89 -> CalibrationScreen(
@@ -103,7 +103,7 @@ class MainActivity : ComponentActivity() {
                     onFailure = { "Export failed" },
                 )
             }
-            onTransferResult?.invoke(status)
+            transferStatus.value = status
         }
     }
 
@@ -119,7 +119,7 @@ class MainActivity : ComponentActivity() {
                     onFailure = { "Import failed" },
                 )
             }
-            onTransferResult?.invoke(status)
+            transferStatus.value = status
         }
     }
 }

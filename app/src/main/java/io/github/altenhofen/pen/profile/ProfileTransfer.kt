@@ -11,7 +11,7 @@ internal class ProfileTransfer(
     private val resolver: ContentResolver,
 ) {
     suspend fun exportTo(uri: Uri) {
-        val profile = PenProfile.create(settings.readBlocking(), prototypes.snapshot())
+        val profile = PenProfile.create(settings.readBlocking(), prototypes.loadOrSeed())
         val stream = resolver.openOutputStream(uri)
             ?: throw ProfileTransferException("cannot open export stream")
         stream.use { ProfileArchiveCodec.encode(it, profile) }
