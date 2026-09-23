@@ -1,6 +1,7 @@
 package io.github.altenhofen.pen.recognition
 
 import android.content.Context
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
@@ -10,65 +11,123 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.Transaction
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import io.github.altenhofen.pen.calibration.CalibrationPayload
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-@Entity(tableName = "prototypes")
-data class PrototypeRow(
-    @PrimaryKey val label: String,
+@Entity(tableName = "prototype_clusters")
+internal data class ClusterRow(
+    @PrimaryKey @ColumnInfo(name = "cluster_id") val clusterId: String,
+    val label: String,
     val packed: ByteArray,
 )
 
 @Dao
-interface PrototypeDao {
-    @Query("SELECT * FROM prototypes")
-    fun all(): List<PrototypeRow>
+internal abstract class PrototypeDao {
+    @Query("SELECT * FROM prototype_clusters")
+    abstract fun all(): List<ClusterRow>
+
+    @Query("SELECT * FROM prototype_clusters WHERE cluster_id = :clusterId")
+    abstract fun find(clusterId: String): ClusterRow?
+
+    @Query("SELECT COUNT(*) FROM prototype_clusters WHERE cluster_id IN (:clusterIds)")
+    abstract fun countExisting(clusterIds: List<String>): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun upsert(row: PrototypeRow)
+    abstract fun upsert(rows: List<ClusterRow>)
+
+    @Transaction
+    open fun insertUnlessAnyExists(rows: List<ClusterRow>) {
+        if (countExisting(rows.map { it.clusterId }) == 0) upsert(rows)
+    }
 }
 
-@Database(entities = [PrototypeRow::class], version = 1, exportSchema = false)
-abstract class PrototypeDatabase : RoomDatabase() {
+@Database(entities = [ClusterRow::class], version = 2, exportSchema = false)
+internal abstract class PrototypeDatabase : RoomDatabase() {
     abstract fun prototypes(): PrototypeDao
 }
 
-class PrototypeStore(private val dao: PrototypeDao) {
-    fun loadOrSeed(): Map<Char, FloatArray> {
-        val existing = dao.all()
-        if (existing.isEmpty()) {
-            val seeded = seedLabels.associateWith { label ->
-                preprocessPolylines(seedPolylines(label))!!.copyValues()
-            }
-            seeded.forEach { (label, values) -> dao.upsert(row(label, values)) }
-            return seeded
-        }
-        return existing.associate { row -> row.label.single() to unpack(row.packed) }
+internal val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS prototype_clusters (" +
+                "cluster_id TEXT NOT NULL, label TEXT NOT NULL, packed BLOB NOT NULL, PRIMARY KEY(cluster_id))",
+        )
+        db.execSQL(
+            "INSERT INTO prototype_clusters (cluster_id, label, packed) " +
+                "SELECT 'legacy:' || label, label, packed FROM prototypes",
+        )
+        db.execSQL("DROP TABLE prototypes")
+    }
+}
+
+internal class PrototypeStore(private val dao: PrototypeDao) {
+    fun loadOrSeed(): List<PrototypeCluster> {
+        seedIfEmpty()
+        return dao.all().map { it.toCluster() }
     }
 
-    fun save(label: Char, values: FloatArray) {
-        dao.upsert(row(label, values))
+    private fun seedIfEmpty() {
+        if (dao.all().isEmpty()) dao.upsert(seedClusters().map { it.toRow() })
+    }
+
+    fun upsert(cluster: PrototypeCluster) {
+        dao.upsert(listOf(cluster.toRow()))
+    }
+
+    fun adapt(clusterId: ClusterId, sample: FeatureVector, feedback: Feedback): PrototypeCluster {
+        val current = requireNotNull(dao.find(clusterId.value)) { "unknown cluster ${clusterId.value}" }.toCluster()
+        val prototype = current.vector.copyValues()
+        val values = when (feedback) {
+            Feedback.Accepted -> PrototypeUpdate.attract(prototype, sample.copyValues(), PrototypeUpdate.ACCEPT_REWARD)
+            Feedback.Rejected -> PrototypeUpdate.repel(prototype, sample.copyValues())
+        }
+        val updated = current.copy(vector = FeatureVector.from(values))
+        upsert(updated)
+        return updated
+    }
+
+    fun commitCalibration(payload: CalibrationPayload) {
+        seedIfEmpty()
+        dao.insertUnlessAnyExists(payload.clusters.map { it.toRow() })
+    }
+
+    fun commitUserTraining(payload: CalibrationPayload) {
+        seedIfEmpty()
+        dao.upsert(payload.clusters.map { it.toRow() })
     }
 
     companion object {
+        @Volatile
+        private var instance: PrototypeStore? = null
+
         fun open(context: Context): PrototypeStore {
-            val database = Room.databaseBuilder(
-                context.applicationContext,
-                PrototypeDatabase::class.java,
-                "prototypes.db",
-            ).allowMainThreadQueries().build()
-            return PrototypeStore(database.prototypes())
+            instance?.let { return it }
+            return synchronized(this) {
+                instance ?: PrototypeStore(
+                    Room.databaseBuilder(
+                        context.applicationContext,
+                        PrototypeDatabase::class.java,
+                        "prototypes.db",
+                    ).addMigrations(MIGRATION_1_2).allowMainThreadQueries().build().prototypes(),
+                ).also { instance = it }
+            }
         }
     }
 }
 
-private fun row(label: Char, values: FloatArray): PrototypeRow {
+private fun PrototypeCluster.toRow(): ClusterRow {
+    val values = vector.copyValues()
     val buffer = ByteBuffer.allocate(values.size * Float.SIZE_BYTES).order(ByteOrder.LITTLE_ENDIAN)
     values.forEach { buffer.putFloat(it) }
-    return PrototypeRow(label.toString(), buffer.array())
+    return ClusterRow(id.value, label.toString(), buffer.array())
 }
 
-private fun unpack(packed: ByteArray): FloatArray {
+private fun ClusterRow.toCluster(): PrototypeCluster {
     val buffer = ByteBuffer.wrap(packed).order(ByteOrder.LITTLE_ENDIAN)
-    return FloatArray(packed.size / Float.SIZE_BYTES) { buffer.float }
+    val values = FloatArray(packed.size / Float.SIZE_BYTES) { buffer.float }
+    return PrototypeCluster(ClusterId(clusterId), label.single(), FeatureVector.from(values))
 }

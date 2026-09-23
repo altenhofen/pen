@@ -2,6 +2,7 @@ package io.github.altenhofen.pen.recognition
 
 import io.github.altenhofen.pen.ime.Stroke
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.abs
@@ -44,30 +45,50 @@ class GlyphRecognizerTest {
 
     @Test
     fun eachSeedMatchesItself() {
-        val recognizer = GlyphRecognizer.seeded(DistanceMetric.EUCLIDEAN)
+        val recognizer = seededRecognizer(DistanceMetric.EUCLIDEAN)
         for (label in seedLabels) {
-            val strokes = seedPolylines(label).map { polyline ->
-                val stroke = Stroke()
-                for (point in polyline) stroke.append(point.x, point.y)
-                stroke
-            }
-            val match = recognizer.recognize(strokes)
-            assertEquals(label, match?.character)
-            assertTrue((match?.distance ?: 1f) < 1e-4f)
+            val result = recognizer.rank(requireNotNull(featuresFromStrokes(seedStrokes(label))), 0.15f)
+            assertEquals(label, result.winner.character)
+            assertEquals(ClusterId("seed:$label"), result.winner.clusterId)
+            assertTrue(result.winner.distance < 1e-4f)
         }
     }
 
     @Test
     fun dtwIsZeroOnIdenticalSeeds() {
-        val recognizer = GlyphRecognizer.seeded(DistanceMetric.DTW)
-        val strokes = seedPolylines('8').map { polyline ->
-            val stroke = Stroke()
-            for (point in polyline) stroke.append(point.x, point.y)
-            stroke
-        }
-        val match = recognizer.recognize(strokes)
-        assertEquals('8', match?.character)
-        assertTrue((match?.distance ?: 1f) < 1e-4f)
+        val recognizer = seededRecognizer(DistanceMetric.DTW)
+        val result = recognizer.rank(requireNotNull(featuresFromStrokes(seedStrokes('8'))), 0.15f)
+        assertEquals('8', result.winner.character)
+        assertEquals(ClusterId("seed:8"), result.winner.clusterId)
+        assertTrue(result.winner.distance < 1e-4f)
+    }
+
+    @Test
+    fun duplicateLabelClustersCollapseBeforeRankingAndAmbiguity() {
+        val nine = seedVector('9')
+        val nearNine = FeatureVector.from(nine.copyValues().map { it + 0.01f }.toFloatArray())
+        val eight = seedVector('8')
+        val recognizer = GlyphRecognizer(DistanceMetric.DTW)
+        recognizer.replaceAll(
+            listOf(
+                PrototypeCluster(ClusterId("cal:s:9"), '9', nearNine),
+                PrototypeCluster(ClusterId("seed:8"), '8', eight),
+                PrototypeCluster(ClusterId("seed:9"), '9', nine),
+            ),
+        )
+        val nearNineDistance = bandedDtw(nine, nearNine)
+        val eightDistance = bandedDtw(nine, eight)
+        assertTrue(nearNineDistance < eightDistance)
+        val between = (nearNineDistance + eightDistance) / 2f
+
+        val result = recognizer.rank(nine, between)
+
+        assertEquals(ClusterId("seed:9"), result.winner.clusterId)
+        assertEquals(listOf('9', '8'), result.ranked.map { it.character })
+        assertEquals(listOf(ClusterId("seed:9"), ClusterId("seed:8")), result.ranked.map { it.clusterId })
+        assertEquals(eightDistance - result.winner.distance, result.ambiguity.gap, 1e-6f)
+        assertFalse(result.ambiguity.isAmbiguous)
+        assertTrue(recognizer.rank(nine, eightDistance + 0.01f).ambiguity.isAmbiguous)
     }
 
     @Test
@@ -89,10 +110,20 @@ class GlyphRecognizerTest {
 
     @Test
     fun eightIsNotZero() {
-        val eight = preprocessPolylines(seedPolylines('8'))
-        val zero = preprocessPolylines(seedPolylines('0'))
-        requireNotNull(eight)
-        requireNotNull(zero)
-        assertTrue(meanEuclidean(eight, zero) > 0.02f)
+        assertTrue(meanEuclidean(seedVector('8'), seedVector('0')) > 0.02f)
     }
+}
+
+internal fun seededRecognizer(metric: DistanceMetric): GlyphRecognizer =
+    GlyphRecognizer(metric).apply { replaceAll(seedClusters()) }
+
+internal fun seedVector(label: Char): FeatureVector = requireNotNull(preprocessPolylines(seedPolylines(label)))
+
+internal fun seedStrokes(label: Char, jitter: Float = 0f): List<Stroke> = seedPolylines(label).map { polyline ->
+    val stroke = Stroke()
+    for ((index, point) in polyline.withIndex()) {
+        val offset = if (index % 2 == 0) jitter else -jitter
+        stroke.append(point.x + offset, point.y - offset)
+    }
+    stroke
 }

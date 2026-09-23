@@ -8,17 +8,23 @@ import android.os.Handler
 import android.os.Looper
 import android.view.MotionEvent
 import android.view.View
+import io.github.altenhofen.pen.settings.CaptureStyle
+import io.github.altenhofen.pen.settings.MotorSettings
 
 fun interface OnGlyphSettledListener {
     fun onGlyphSettled(strokes: List<Stroke>)
 }
 
-class DrawingCanvasView(context: Context) : View(context) {
+class DrawingCanvasView(
+    context: Context,
+    private val acceptsTool: (toolType: Int) -> Boolean = StylusGate::accepts,
+) : View(context) {
     private val finished = ArrayList<Stroke>()
     private var active: Stroke? = null
     private var settledListener: OnGlyphSettledListener? = null
     private val settleHandler = Handler(Looper.getMainLooper())
     private val settleRunnable = Runnable { dispatchSettledGlyph() }
+    private var settleMillis = MotorSettings.Default.settleMillis
 
     fun setOnGlyphSettledListener(listener: OnGlyphSettledListener?) {
         settledListener = listener
@@ -33,14 +39,23 @@ class DrawingCanvasView(context: Context) : View(context) {
 
     private val ink = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 6f
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
         color = 0xFF1A1A1A.toInt()
     }
 
+    init {
+        configure(MotorSettings.Default.capture())
+    }
+
+    fun configure(style: CaptureStyle) {
+        settleMillis = style.settleMillis
+        ink.strokeWidth = style.strokeWidthDp * resources.displayMetrics.density
+        invalidate()
+    }
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (!StylusGate.accepts(event.getToolType(0))) {
+        if (!acceptsTool(event.getToolType(0))) {
             return false
         }
         when (event.actionMasked) {
@@ -88,7 +103,7 @@ class DrawingCanvasView(context: Context) : View(context) {
 
     private fun scheduleSettle() {
         settleHandler.removeCallbacks(settleRunnable)
-        settleHandler.postDelayed(settleRunnable, SETTLE_MS)
+        settleHandler.postDelayed(settleRunnable, settleMillis)
     }
 
     private fun dispatchSettledGlyph() {
@@ -108,9 +123,5 @@ class DrawingCanvasView(context: Context) : View(context) {
             path.lineTo(points[i].x, points[i].y)
         }
         canvas.drawPath(path, ink)
-    }
-
-    private companion object {
-        const val SETTLE_MS = 600L
     }
 }

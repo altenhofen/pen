@@ -1,6 +1,6 @@
 # Ink keyboard
 
-After pen is installed, Android keyboard settings lists an input method named `pen ink`. The row is off until the user turns it on. The launcher screen does not show the ink canvas.
+After pen is installed, Android keyboard settings lists an input method named `pen ink`. The row is off until the user turns it on. The launcher settings screen does not show the IME ink canvas.
 
 ## Sub-features
 
@@ -24,6 +24,6 @@ Preconditions:
 
 ## Gotchas
 
-- The ink canvas appears only while this input method is selected and some other app has a focused text field. `MainActivity` has no text field, so the greeting screen never shows the canvas.
+- The IME canvas appears only while this input method is selected and some other app has a focused text field. `MainActivity` has no text field, so settings never shows the IME canvas. Calibration embeds a training `DrawingCanvasView`. That is not the IME.
 - Match `text="pen ink"`. The launcher label is `pen`.
 - `uiautomator dump` with no path writes `/sdcard/window_dump.xml` on the device. Proof must use `exec-out uiautomator dump /dev/tty`.
