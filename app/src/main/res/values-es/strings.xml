@@ -26,4 +26,7 @@
     <string name="calibrate_now_writing">Escribiendo %1$s</string>
     <string name="calibrate_samples_so_far">%1$d muestras</string>
     <string name="calibrate_complete">Entrenamiento guardado para %1$d caracteres</string>
+    <string name="ime_key_space">espacio</string>
+    <string name="ime_model_downloading">Descargando modelo de escritura</string>
+    <string name="ime_model_offline">Sin conexión, usando calibración</string>
 </resources>
