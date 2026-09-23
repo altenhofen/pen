@@ -7,7 +7,7 @@ This directory is the maintained source for verifying the user-facing behavior o
 - Launcher activity `io.github.altenhofen.pen/.MainActivity` shows `Pen settings`.
 - On-screen keyboard settings lists the input method `pen ink`.
 - Launch with `.cursor/skills/verify-pen/scripts/launch.sh` so the run owns serial `emulator-5556`.
-- Run `.cursor/skills/verify-pen/scripts/doctor.sh` and require serial `emulator-5556`, boot completed, and `versionName=1.0`.
+- Run `.cursor/skills/verify-pen/scripts/doctor.sh` and require serial `emulator-5556`, boot completed, and `versionName=1.0`. Doctor pins the app locale to English for stable `text=` handles.
 - Never drive an emulator serial this run did not start.
 
 ## Driving conventions
