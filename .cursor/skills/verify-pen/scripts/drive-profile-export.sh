@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
-SERIAL="emulator-5556"
+SERIAL="${SERIAL:-emulator-5556}"
 OUT="$ROOT/.cursor/skills/verify-pen/artifacts/profile-export"
 TEST_PASS="testpass12"
 export ANDROID_HOME="${ANDROID_HOME:-/home/altenhofen/Android/Sdk}"
