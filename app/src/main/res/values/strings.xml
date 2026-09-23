@@ -5,6 +5,8 @@
     <string name="settle_window">Settle window</string>
     <string name="stroke_width">Stroke width</string>
     <string name="ambiguity_threshold">Ambiguity threshold</string>
+    <string name="allow_finger_input">Finger and passive pen</string>
+    <string name="allow_finger_input_hint">Allow touch input on the keyboard ink area. Turn on if you do not use an active stylus.</string>
     <string name="slider_label_format">%1$s: %2$s</string>
     <string name="settle_window_value">%1$d ms</string>
     <string name="stroke_width_value">%1$.1f dp</string>

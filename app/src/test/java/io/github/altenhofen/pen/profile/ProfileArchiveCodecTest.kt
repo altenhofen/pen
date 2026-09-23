@@ -17,7 +17,11 @@ class ProfileArchiveCodecTest {
     fun roundTripPersistsMotorAndSeedCluster() {
         val vector = FloatArray(96) { 0.1f }
         val profile = PenProfile.create(
-            MotorSettings.Default.withSettleMillis(900L).withStrokeWidthDp(5.5f).withAmbiguityThreshold(0.2f),
+            MotorSettings.Default
+                .withSettleMillis(900L)
+                .withStrokeWidthDp(5.5f)
+                .withAmbiguityThreshold(0.2f)
+                .withAllowFingerInput(true),
             listOf(PrototypeCluster(ClusterId("seed:8"), '8', FeatureVector.from(vector))),
         )
         val encoded = ByteArrayOutputStream().also { ProfileArchiveCodec.encode(it, profile) }.toByteArray()
@@ -25,6 +29,7 @@ class ProfileArchiveCodecTest {
         assertEquals(900L, decoded.settings.settleMillis)
         assertEquals(5.5f, decoded.settings.strokeWidthDp)
         assertEquals(0.2f, decoded.settings.ambiguityThreshold)
+        assertEquals(true, decoded.settings.allowFingerInput)
         assertEquals(1, decoded.prototypes.size)
         assertEquals("seed:8", decoded.prototypes.single().id.value)
         assertEquals('8', decoded.prototypes.single().label)
@@ -64,6 +69,12 @@ class ProfileArchiveCodecTest {
         val decoded = ProfileArchiveCodec.decode(ByteArrayInputStream(bytes))
         assertEquals("seed:8", decoded.prototypes.single().id.value)
         assertTrue(decoded.prototypes.single().vector.copyValues().contentEquals(vector))
+    }
+
+    @Test
+    fun legacyArchiveWithoutFingerFlagDefaultsOff() {
+        val decoded = ProfileArchiveCodec.decode(ByteArrayInputStream(zipOf(profileJson())))
+        assertEquals(false, decoded.settings.allowFingerInput)
     }
 
     @Test

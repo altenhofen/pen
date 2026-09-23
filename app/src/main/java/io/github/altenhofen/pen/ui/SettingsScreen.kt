@@ -2,10 +2,13 @@ package io.github.altenhofen.pen.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,6 +56,22 @@ fun SettingsScreen(
             valueText = { stringResource(R.string.ambiguity_value, it) },
             onCommit = { onUpdate { settings -> settings.withAmbiguityThreshold(it) } },
         )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                Text(stringResource(R.string.allow_finger_input))
+                Text(
+                    stringResource(R.string.allow_finger_input_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Switch(
+                checked = current.allowFingerInput,
+                onCheckedChange = { enabled -> onUpdate { settings -> settings.withAllowFingerInput(enabled) } },
+            )
+        }
         Button(onClick = onCalibrate) {
             Text(stringResource(R.string.action_calibrate))
         }

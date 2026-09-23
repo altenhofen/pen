@@ -26,7 +26,10 @@ class PenInputMethodService : InputMethodService() {
     }
 
     override fun onCreateInputView(): View {
-        val view = DrawingCanvasView(this)
+        val view = DrawingCanvasView(
+            this,
+            acceptsTool = { StylusGate.acceptsIme(it, activeSettings.allowFingerInput) },
+        )
         val height = (resources.displayMetrics.heightPixels * 0.45f).toInt()
         view.layoutParams = ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,

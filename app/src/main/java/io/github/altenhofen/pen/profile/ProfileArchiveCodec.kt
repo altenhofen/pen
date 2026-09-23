@@ -55,6 +55,7 @@ internal object ProfileArchiveCodec {
                     wire.motor.settleMillis,
                     wire.motor.strokeWidthDp,
                     wire.motor.ambiguityThreshold,
+                    wire.motor.allowFingerInput,
                 ),
                 wire.prototypes.map { it.toCluster() },
             )
@@ -73,7 +74,12 @@ internal object ProfileArchiveCodec {
 
     private fun PenProfile.toWire() = ProfileWire(
         formatVersion = FORMAT_VERSION,
-        motor = MotorWire(settings.settleMillis, settings.strokeWidthDp, settings.ambiguityThreshold),
+        motor = MotorWire(
+            settings.settleMillis,
+            settings.strokeWidthDp,
+            settings.ambiguityThreshold,
+            settings.allowFingerInput,
+        ),
         prototypes = prototypes.map { cluster ->
             PrototypeWire(
                 id = cluster.id.value,
@@ -101,6 +107,7 @@ private data class MotorWire(
     val settleMillis: Long,
     val strokeWidthDp: Float,
     val ambiguityThreshold: Float,
+    val allowFingerInput: Boolean = false,
 )
 
 @Serializable

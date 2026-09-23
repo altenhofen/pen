@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -33,12 +34,18 @@ private val Context.motorDataStore: DataStore<Preferences> by preferencesDataSto
 private val SETTLE_MILLIS = longPreferencesKey("settle_millis")
 private val STROKE_WIDTH_DP = floatPreferencesKey("stroke_width_dp")
 private val AMBIGUITY_THRESHOLD = floatPreferencesKey("ambiguity_threshold")
+private val ALLOW_FINGER_INPUT = booleanPreferencesKey("allow_finger_input")
 
 private class PreferencesMotorSettingsStore(private val store: DataStore<Preferences>) : MotorSettingsStore {
     override val values: Flow<MotorSettings> = store.data
         .catch { error -> if (error is IOException) emit(emptyPreferences()) else throw error }
         .map { prefs ->
-            MotorSettings.parse(prefs[SETTLE_MILLIS], prefs[STROKE_WIDTH_DP], prefs[AMBIGUITY_THRESHOLD])
+            MotorSettings.parse(
+                prefs[SETTLE_MILLIS],
+                prefs[STROKE_WIDTH_DP],
+                prefs[AMBIGUITY_THRESHOLD],
+                prefs[ALLOW_FINGER_INPUT],
+            )
         }
 
     override fun readBlocking(): MotorSettings = runBlocking { values.first() }
@@ -50,7 +57,12 @@ private class PreferencesMotorSettingsStore(private val store: DataStore<Prefere
     override suspend fun update(transform: (MotorSettings) -> MotorSettings) {
         store.edit { prefs ->
             val next = transform(
-                MotorSettings.parse(prefs[SETTLE_MILLIS], prefs[STROKE_WIDTH_DP], prefs[AMBIGUITY_THRESHOLD]),
+                MotorSettings.parse(
+                prefs[SETTLE_MILLIS],
+                prefs[STROKE_WIDTH_DP],
+                prefs[AMBIGUITY_THRESHOLD],
+                prefs[ALLOW_FINGER_INPUT],
+            ),
             )
             writeInto(prefs, next)
         }
@@ -64,5 +76,6 @@ private class PreferencesMotorSettingsStore(private val store: DataStore<Prefere
         prefs[SETTLE_MILLIS] = settings.settleMillis
         prefs[STROKE_WIDTH_DP] = settings.strokeWidthDp
         prefs[AMBIGUITY_THRESHOLD] = settings.ambiguityThreshold
+        prefs[ALLOW_FINGER_INPUT] = settings.allowFingerInput
     }
 }

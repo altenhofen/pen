@@ -19,6 +19,13 @@ class StylusGateTest {
     }
 
     @Test
+    fun imeRejectsFingerUnlessAllowed() {
+        assertFalse(StylusGate.acceptsIme(MotionEvent.TOOL_TYPE_FINGER, allowFingerInput = false))
+        assertTrue(StylusGate.acceptsIme(MotionEvent.TOOL_TYPE_FINGER, allowFingerInput = true))
+        assertTrue(StylusGate.acceptsIme(MotionEvent.TOOL_TYPE_STYLUS, allowFingerInput = false))
+    }
+
+    @Test
     fun trainingAcceptsStylusAndFinger() {
         assertTrue(StylusGate.acceptsTraining(MotionEvent.TOOL_TYPE_STYLUS))
         assertTrue(StylusGate.acceptsTraining(MotionEvent.TOOL_TYPE_FINGER))
