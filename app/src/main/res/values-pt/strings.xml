@@ -3,6 +3,8 @@
     <string name="settle_window">Janela de estabilização</string>
     <string name="stroke_width">Espessura do traço</string>
     <string name="ambiguity_threshold">Limiar de ambiguidade</string>
+    <string name="allow_finger_input">Dedo e caneta passiva</string>
+    <string name="allow_finger_input_hint">Aceitar o toque na área de escrita do teclado. Ative se você não usa uma caneta ativa.</string>
     <string name="slider_label_format">%1$s: %2$s</string>
     <string name="settle_window_value">%1$d ms</string>
     <string name="stroke_width_value">%1$.1f dp</string>
@@ -37,5 +39,10 @@
     <string name="calibrate_complete">Treinamento salvo para %1$d caracteres</string>
     <string name="ime_key_space">espaço</string>
     <string name="ime_model_downloading">Baixando modelo de escrita</string>
-    <string name="ime_model_offline">Offline, usando calibração</string>
+    <string name="ime_model_offline">Offline, usando a calibração</string>
+    <string name="language_section">Idioma</string>
+    <string name="app_language">Idioma do app</string>
+    <string name="app_language_system_default">Padrão do sistema</string>
+    <string name="handwriting_language">Idioma da escrita</string>
+    <string name="handwriting_language_follow_app">Igual ao idioma do app</string>
 </resources>

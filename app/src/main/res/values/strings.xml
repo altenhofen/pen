@@ -42,4 +42,9 @@
     <string name="ime_key_space">space</string>
     <string name="ime_model_downloading">Downloading handwriting model</string>
     <string name="ime_model_offline">Offline, using calibration</string>
+    <string name="language_section">Language</string>
+    <string name="app_language">App language</string>
+    <string name="app_language_system_default">System default</string>
+    <string name="handwriting_language">Handwriting language</string>
+    <string name="handwriting_language_follow_app">Same as app language</string>
 </resources>
