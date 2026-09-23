@@ -6,11 +6,17 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
-import io.github.altenhofen.pen.recognition.Feedback
+import io.github.altenhofen.pen.recognition.GlyphTemplateSource
 import io.github.altenhofen.pen.recognition.InkModel
-import io.github.altenhofen.pen.recognition.RecognitionResult
+import io.github.altenhofen.pen.recognition.InkModelSource
 import io.github.altenhofen.pen.recognition.Suggestion
+import io.github.altenhofen.pen.recognition.WordMemory
+import io.github.altenhofen.pen.recognition.WordMemorySource
+import io.github.altenhofen.pen.recognition.WordMemoryStore
+import io.github.altenhofen.pen.recognition.WordSample
 import io.github.altenhofen.pen.recognition.blendSuggestions
+import io.github.altenhofen.pen.recognition.wordFeatures
+import java.util.UUID
 import io.github.altenhofen.pen.settings.MotorSettings
 import io.github.altenhofen.pen.settings.MotorSettingsStore
 
@@ -18,9 +24,11 @@ class PenInputMethodService : InputMethodService() {
     private lateinit var settings: MotorSettingsStore
     private lateinit var recognizer: AdaptiveRecognizer
     private lateinit var inkModel: InkModel
+    private lateinit var wordStore: WordMemoryStore
+    private var words = WordMemory()
     private var activeSettings: MotorSettings = MotorSettings.Default
     private var keyboard: InkKeyboardView? = null
-    private var pending: RecognitionResult? = null
+    private val pending = PendingCommit()
     private var pendingAt: Long = 0L
     private var committed: String? = null
     private var glyphGeneration = 0
@@ -29,6 +37,7 @@ class PenInputMethodService : InputMethodService() {
         super.onCreate()
         settings = MotorSettingsStore.open(this)
         recognizer = AdaptiveRecognizer.open(this)
+        wordStore = WordMemoryStore.open(this)
         inkModel = InkModel(INK_LANGUAGE) { state -> keyboard?.showModelState(state) }
     }
 
@@ -60,17 +69,20 @@ class PenInputMethodService : InputMethodService() {
 
     private fun onGlyph(strokes: List<Stroke>) {
         val template = recognizer.recognize(strokes, activeSettings.ambiguityThreshold)
+        val shape = wordFeatures(strokes)
+        val recalls = shape?.let(words::recall).orEmpty()
         val generation = ++glyphGeneration
         val preContext = currentInputConnection?.getTextBeforeCursor(PRE_CONTEXT, 0)?.toString().orEmpty()
         val canvas = keyboard?.canvas
-        inkModel.recognize(strokes, preContext, canvas?.width?.toFloat() ?: 0f, canvas?.height?.toFloat() ?: 0f) { ink ->
+        inkModel.recognize(strokes, preContext, canvas?.width?.toFloat() ?: 0f, canvas?.height?.toFloat() ?: 0f) { candidates ->
             if (generation != glyphGeneration) return@recognize
-            val suggestions = blendSuggestions(template?.ranked.orEmpty(), ink)
+            val ink = InkModelSource(candidates)
+            val sources = listOf(ink, GlyphTemplateSource(template, ink), WordMemorySource(recalls, words.confirmations()))
+            val suggestions = blendSuggestions(sources)
             val best = suggestions.firstOrNull() ?: return@recognize
-            acceptPending()
+            resolve(pending.committed(best.text, shape, template))
             currentInputConnection?.commitText(best.text, 1)
             committed = best.text
-            pending = template?.takeIf { it.winner.character.toString() == best.text }
             pendingAt = SystemClock.elapsedRealtime()
             keyboard?.showSuggestions(suggestions, best.text)
         }
@@ -80,17 +92,29 @@ class PenInputMethodService : InputMethodService() {
         val previous = committed ?: return
         val connection = currentInputConnection ?: return
         if (connection.getTextBeforeCursor(previous.length, 0)?.toString() != previous) return
-        pending?.let { if (it.winner.character.toString() != suggestion.text) recognizer.feedback(it, Feedback.Rejected) }
-        pending = null
+        resolve(pending.picked(suggestion.text))
         connection.deleteSurroundingText(previous.length, 0)
         connection.commitText(suggestion.text, 1)
         committed = suggestion.text
         keyboard?.showSuggestions(listOf(suggestion), suggestion.text)
     }
 
+    private fun resolve(resolution: Resolution?) {
+        resolution ?: return
+        val glyph = resolution.glyph
+        val feedback = resolution.glyphFeedback
+        if (glyph != null && feedback != null) recognizer.feedback(glyph, feedback)
+        if (resolution is Resolution.Kept && resolution.ink != null) {
+            val sample = WordSample(UUID.randomUUID().toString(), resolution.text, resolution.ink, System.currentTimeMillis())
+            val (next, evicted) = words.remember(sample)
+            wordStore.apply(sample, evicted)
+            words = next
+        }
+    }
+
     private fun onKey(key: InkKey) {
         val connection = currentInputConnection ?: return
-        if (key != InkKey.Backspace) acceptPending()
+        resolve(if (key == InkKey.Backspace) pending.corrected() else pending.kept())
         committed = null
         keyboard?.showSuggestions(emptyList(), null)
         when (key) {
@@ -117,12 +141,8 @@ class PenInputMethodService : InputMethodService() {
         candidatesEnd: Int,
     ) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
-        val last = pending ?: return
         val withinWindow = SystemClock.elapsedRealtime() - pendingAt <= REJECT_WINDOW_MS
-        if (withinWindow && newSelStart < oldSelStart) {
-            recognizer.feedback(last, Feedback.Rejected)
-            pending = null
-        }
+        if (withinWindow && newSelStart < oldSelStart) resolve(pending.corrected())
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
@@ -132,19 +152,15 @@ class PenInputMethodService : InputMethodService() {
         keyboard?.canvas?.configure(activeSettings.capture())
         keyboard?.showSuggestions(emptyList(), null)
         committed = null
+        pending.discard()
         recognizer.reload()
+        words = wordStore.load()
         inkModel.ensureReady()
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
         keyboard?.canvas?.cancelPendingGlyph()
         super.onFinishInputView(finishingInput)
-    }
-
-    private fun acceptPending() {
-        val last = pending ?: return
-        recognizer.feedback(last, Feedback.Accepted)
-        pending = null
     }
 
     private companion object {
