@@ -16,7 +16,7 @@ Preconditions:
 
 - `.cursor/skills/verify-pen/scripts/doctor.sh` exits `0` on serial `emulator-5556`.
 - Package `io.github.altenhofen.pen` is installed at `versionName=1.0`.
-- The debug build includes `PenInputMethodService`.
+- The main manifest registers `PenInputMethodService`.
 
 - **Open keyboard settings.** The user opens the on-screen keyboard list. Run `adb -s emulator-5556 shell am start -a android.settings.INPUT_METHOD_SETTINGS`. Exit code `0`. Stdout contains `act=android.settings.INPUT_METHOD_SETTINGS`.
 - **Read the row.** The list shows `pen ink`. Run `adb -s emulator-5556 exec-out uiautomator dump /dev/tty`. The dump contains `text="pen ink"`.
