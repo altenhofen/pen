@@ -24,6 +24,7 @@ import kotlin.math.roundToInt
  * f32    strokeWidthDp
  * f32    ambiguityThreshold
  * u8     allowFingerInput
+ * text   handwritingLanguage tag, empty when following the app locale
  * varint clusterCount
  *   text  id
  *   varint label code point
@@ -56,6 +57,7 @@ internal object ProfileBinaryCodec {
         writer.float(profile.settings.strokeWidthDp)
         writer.float(profile.settings.ambiguityThreshold)
         writer.byte(if (profile.settings.allowFingerInput) 1 else 0)
+        writer.text(profile.settings.handwriting.stored() ?: "")
 
         val clusters = profile.prototypes.filterNot(::isPristineSeed)
         writer.varint(clusters.size.toLong())
@@ -89,6 +91,7 @@ internal object ProfileBinaryCodec {
             reader.float(),
             reader.float(),
             reader.byte() != 0,
+            handwritingTag(reader.text()),
         )
 
         val clusterCount = reader.count("cluster count", PenProfile.MAX_PROTOTYPES)
@@ -109,6 +112,8 @@ internal object ProfileBinaryCodec {
         }
         return PenProfile.create(settings, withRegeneratedSeeds(clusters), words)
     }
+
+    private fun handwritingTag(stored: String): String? = stored.ifEmpty { null }
 
     private fun isPristineSeed(cluster: PrototypeCluster): Boolean =
         pristineSeeds[cluster.id]?.contentEquals(cluster.vector.copyValues()) == true

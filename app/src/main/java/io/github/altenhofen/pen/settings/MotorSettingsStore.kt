@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -35,6 +36,7 @@ private val SETTLE_MILLIS = longPreferencesKey("settle_millis")
 private val STROKE_WIDTH_DP = floatPreferencesKey("stroke_width_dp")
 private val AMBIGUITY_THRESHOLD = floatPreferencesKey("ambiguity_threshold")
 private val ALLOW_FINGER_INPUT = booleanPreferencesKey("allow_finger_input")
+private val HANDWRITING_LANGUAGE = stringPreferencesKey("handwriting_language")
 
 private class PreferencesMotorSettingsStore(private val store: DataStore<Preferences>) : MotorSettingsStore {
     override val values: Flow<MotorSettings> = store.data
@@ -45,6 +47,7 @@ private class PreferencesMotorSettingsStore(private val store: DataStore<Prefere
                 prefs[STROKE_WIDTH_DP],
                 prefs[AMBIGUITY_THRESHOLD],
                 prefs[ALLOW_FINGER_INPUT],
+                prefs[HANDWRITING_LANGUAGE],
             )
         }
 
@@ -62,6 +65,7 @@ private class PreferencesMotorSettingsStore(private val store: DataStore<Prefere
                 prefs[STROKE_WIDTH_DP],
                 prefs[AMBIGUITY_THRESHOLD],
                 prefs[ALLOW_FINGER_INPUT],
+                prefs[HANDWRITING_LANGUAGE],
             ),
             )
             writeInto(prefs, next)
@@ -77,5 +81,7 @@ private class PreferencesMotorSettingsStore(private val store: DataStore<Prefere
         prefs[STROKE_WIDTH_DP] = settings.strokeWidthDp
         prefs[AMBIGUITY_THRESHOLD] = settings.ambiguityThreshold
         prefs[ALLOW_FINGER_INPUT] = settings.allowFingerInput
+        val handwriting = settings.handwriting.stored()
+        if (handwriting == null) prefs.remove(HANDWRITING_LANGUAGE) else prefs[HANDWRITING_LANGUAGE] = handwriting
     }
 }

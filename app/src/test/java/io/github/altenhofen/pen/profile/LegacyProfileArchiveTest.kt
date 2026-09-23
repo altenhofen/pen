@@ -2,6 +2,8 @@ package io.github.altenhofen.pen.profile
 
 import io.github.altenhofen.pen.profile.RealisticProfile.zipOf
 import io.github.altenhofen.pen.recognition.WORD_SAMPLE_COUNT
+import io.github.altenhofen.pen.settings.HandwritingLanguage
+import io.github.altenhofen.pen.settings.InkLanguage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -42,6 +44,32 @@ class LegacyProfileArchiveTest {
     @Test
     fun legacyArchiveWithoutFingerFlagDefaultsOff() {
         assertEquals(false, LegacyProfileArchive.decode(zipOf(profileJson())).settings.allowFingerInput)
+    }
+
+    @Test
+    fun legacyArchiveWithoutHandwritingLanguageFollowsTheApp() {
+        assertEquals(HandwritingLanguage.FollowApp, LegacyProfileArchive.decode(zipOf(profileJson())).settings.handwriting)
+    }
+
+    @Test
+    fun legacyArchiveWithHandwritingLanguageRestoresIt() {
+        val json = String(profileJson()).replaceFirst(
+            "\"ambiguityThreshold\":0.2",
+            "\"ambiguityThreshold\":0.2,\"handwritingLanguage\":\"pt-BR\"",
+        )
+        assertEquals(
+            HandwritingLanguage.Explicit(InkLanguage.Portuguese),
+            LegacyProfileArchive.decode(zipOf(json.toByteArray(Charsets.UTF_8))).settings.handwriting,
+        )
+    }
+
+    @Test
+    fun legacyArchiveWithUnknownHandwritingTagFollowsTheApp() {
+        val json = String(profileJson()).replaceFirst(
+            "\"ambiguityThreshold\":0.2",
+            "\"ambiguityThreshold\":0.2,\"handwritingLanguage\":\"kl-GL\"",
+        )
+        assertEquals(HandwritingLanguage.FollowApp, LegacyProfileArchive.decode(zipOf(json.toByteArray(Charsets.UTF_8))).settings.handwriting)
     }
 
     @Test

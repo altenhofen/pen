@@ -11,6 +11,8 @@ import io.github.altenhofen.pen.recognition.WordMemorySource
 import io.github.altenhofen.pen.recognition.WordRecall
 import io.github.altenhofen.pen.recognition.WordSample
 import io.github.altenhofen.pen.recognition.seedClusters
+import io.github.altenhofen.pen.settings.HandwritingLanguage
+import io.github.altenhofen.pen.settings.InkLanguage
 import io.github.altenhofen.pen.settings.MotorSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -32,6 +34,13 @@ class ProfileBinaryCodecTest {
         assertEquals(5.5f, decoded.settings.strokeWidthDp)
         assertEquals(0.2f, decoded.settings.ambiguityThreshold)
         assertEquals(true, decoded.settings.allowFingerInput)
+    }
+
+    @Test
+    fun roundTripKeepsHandwritingLanguage() {
+        val tuned = MotorSettings.Default.withHandwriting(HandwritingLanguage.Explicit(InkLanguage.Portuguese))
+        val decoded = roundTrip(profileOf(settings = tuned))
+        assertEquals(HandwritingLanguage.Explicit(InkLanguage.Portuguese), decoded.settings.handwriting)
     }
 
     @Test

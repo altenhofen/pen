@@ -41,6 +41,7 @@ internal object LegacyProfileArchive {
                     wire.motor.strokeWidthDp,
                     wire.motor.ambiguityThreshold,
                     wire.motor.allowFingerInput,
+                    wire.motor.handwritingLanguage,
                 ),
                 wire.prototypes.map { it.toCluster() },
                 wire.words.map { it.toSample() },
@@ -93,6 +94,7 @@ private data class MotorWire(
     val strokeWidthDp: Float,
     val ambiguityThreshold: Float,
     val allowFingerInput: Boolean = false,
+    val handwritingLanguage: String? = null,
 )
 
 @Serializable

@@ -5,11 +5,23 @@ class MotorSettings private constructor(
     val strokeWidthDp: Float,
     val ambiguityThreshold: Float,
     val allowFingerInput: Boolean,
+    val handwriting: HandwritingLanguage,
 ) {
-    fun withSettleMillis(value: Long): MotorSettings = of(value, strokeWidthDp, ambiguityThreshold, allowFingerInput)
-    fun withStrokeWidthDp(value: Float): MotorSettings = of(settleMillis, value, ambiguityThreshold, allowFingerInput)
-    fun withAmbiguityThreshold(value: Float): MotorSettings = of(settleMillis, strokeWidthDp, value, allowFingerInput)
-    fun withAllowFingerInput(value: Boolean): MotorSettings = of(settleMillis, strokeWidthDp, ambiguityThreshold, value)
+    fun withSettleMillis(value: Long): MotorSettings =
+        of(value, strokeWidthDp, ambiguityThreshold, allowFingerInput, handwriting)
+
+    fun withStrokeWidthDp(value: Float): MotorSettings =
+        of(settleMillis, value, ambiguityThreshold, allowFingerInput, handwriting)
+
+    fun withAmbiguityThreshold(value: Float): MotorSettings =
+        of(settleMillis, strokeWidthDp, value, allowFingerInput, handwriting)
+
+    fun withAllowFingerInput(value: Boolean): MotorSettings =
+        of(settleMillis, strokeWidthDp, ambiguityThreshold, value, handwriting)
+
+    fun withHandwriting(value: HandwritingLanguage): MotorSettings =
+        of(settleMillis, strokeWidthDp, ambiguityThreshold, allowFingerInput, value)
+
     fun capture(): CaptureStyle = CaptureStyle(settleMillis, strokeWidthDp)
 
     override fun equals(other: Any?): Boolean =
@@ -17,11 +29,12 @@ class MotorSettings private constructor(
             settleMillis == other.settleMillis &&
             strokeWidthDp == other.strokeWidthDp &&
             ambiguityThreshold == other.ambiguityThreshold &&
-            allowFingerInput == other.allowFingerInput
+            allowFingerInput == other.allowFingerInput &&
+            handwriting == other.handwriting
 
     override fun hashCode(): Int =
-        ((settleMillis.hashCode() * 31 + strokeWidthDp.hashCode()) * 31 + ambiguityThreshold.hashCode()) * 31 +
-            allowFingerInput.hashCode()
+        (((settleMillis.hashCode() * 31 + strokeWidthDp.hashCode()) * 31 + ambiguityThreshold.hashCode()) * 31 +
+            allowFingerInput.hashCode()) * 31 + handwriting.hashCode()
 
     companion object {
         const val MIN_SETTLE_MILLIS = 300L
@@ -31,27 +44,36 @@ class MotorSettings private constructor(
         const val MIN_AMBIGUITY = 0.01f
         const val MAX_AMBIGUITY = 1f
 
-        val Default: MotorSettings = MotorSettings(600L, 6f, 0.15f, false)
+        val Default: MotorSettings = MotorSettings(600L, 6f, 0.15f, false, HandwritingLanguage.FollowApp)
 
         internal fun parse(
             settle: Long?,
             width: Float?,
             delta: Float?,
             allowFinger: Boolean? = null,
+            handwriting: String? = null,
         ): MotorSettings = of(
             settle ?: Default.settleMillis,
             width ?: Default.strokeWidthDp,
             delta ?: Default.ambiguityThreshold,
             allowFinger ?: Default.allowFingerInput,
+            HandwritingLanguage.parse(handwriting),
         )
 
-        private fun of(settle: Long, width: Float, delta: Float, allowFinger: Boolean) = MotorSettings(
+        private fun of(
+            settle: Long,
+            width: Float,
+            delta: Float,
+            allowFinger: Boolean,
+            handwriting: HandwritingLanguage,
+        ) = MotorSettings(
             settle.coerceIn(MIN_SETTLE_MILLIS, MAX_SETTLE_MILLIS),
             (width.takeIf { it.isFinite() } ?: Default.strokeWidthDp)
                 .coerceIn(MIN_STROKE_WIDTH_DP, MAX_STROKE_WIDTH_DP),
             (delta.takeIf { it.isFinite() } ?: Default.ambiguityThreshold)
                 .coerceIn(MIN_AMBIGUITY, MAX_AMBIGUITY),
             allowFinger,
+            handwriting,
         )
     }
 }
