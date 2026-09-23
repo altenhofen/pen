@@ -24,11 +24,19 @@ internal class GlyphRecognizer(private val metric: DistanceMetric = DistanceMetr
             .map { RankedMatch(it.label, it.id, distance(sample, it.vector)) }
             .groupBy { it.character }
             .values
-            .map { perLabel -> perLabel.minBy { it.distance } }
+            .map { perLabel ->
+                val nearest = perLabel.sortedBy { it.distance }.take(NEAREST_PER_LABEL)
+                nearest.first().copy(distance = nearest.map { it.distance }.average().toFloat())
+            }
             .sortedBy { it.distance }
         val winner = ranked.first()
         val gap = ranked.getOrNull(1)?.let { it.distance - winner.distance } ?: Float.POSITIVE_INFINITY
         return RecognitionResult(winner, ranked, Ambiguity(gap, threshold, gap < threshold), sample)
+    }
+
+    private companion object {
+        /** Averaging a few nearest clusters stops heavily trained labels from winning by sheer count. */
+        const val NEAREST_PER_LABEL = 3
     }
 
     private fun distance(left: FeatureVector, right: FeatureVector): Float = when (metric) {

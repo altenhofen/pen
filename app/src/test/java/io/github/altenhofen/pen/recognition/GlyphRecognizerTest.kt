@@ -92,6 +92,23 @@ class GlyphRecognizerTest {
     }
 
     @Test
+    fun heavilyTrainedLabelDoesNotWinByClusterCount() {
+        val sample = seedVector('8')
+        fun shifted(by: Float) = FeatureVector.from(sample.copyValues().map { it + by }.toFloatArray())
+        val far = seedVector('0')
+        val manyW = listOf(PrototypeCluster(ClusterId("train:w:s:0"), 'w', shifted(0.002f))) +
+            (1 until 20).map { PrototypeCluster(ClusterId("train:w:s:$it"), 'w', far) }
+        val oneB = PrototypeCluster(ClusterId("train:b:s:0"), 'b', shifted(0.004f))
+        val recognizer = GlyphRecognizer(DistanceMetric.EUCLIDEAN)
+        recognizer.replaceAll(manyW + oneB)
+
+        val result = recognizer.rank(sample, 0.01f)
+
+        assertEquals(listOf('b', 'w'), result.ranked.map { it.character })
+        assertEquals(ClusterId("train:w:s:0"), result.ranked[1].clusterId)
+    }
+
+    @Test
     fun attractMovesPrototypeTowardSample() {
         val prototype = floatArrayOf(0f, 0f, 0f)
         val sample = floatArrayOf(1f, 0f, 0f)
