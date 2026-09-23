@@ -29,6 +29,6 @@ Preconditions:
 
 - Tap the innermost clickable ancestor of `Calibrate`. A regex from the first clickable node can hit the wrong button.
 - `Start` is not clickable until at least one glyph is selected. Tap `0` first.
-- Finger strokes work on this canvas. The IME canvas still rejects fingers.
+- Finger strokes work on this canvas. The IME canvas rejects fingers until the user turns on `Finger and passive pen` on Pen settings.
 - Completing ink and `Next` is optional for verification. Proof is the write screen after Start.
 - This screen is not the IME. Do not look for `pen ink` here.
