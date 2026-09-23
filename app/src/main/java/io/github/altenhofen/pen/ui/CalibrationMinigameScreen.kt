@@ -18,7 +18,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -38,6 +40,9 @@ import io.github.altenhofen.pen.ime.Stroke
 import io.github.altenhofen.pen.ime.StylusGate
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
 import io.github.altenhofen.pen.settings.CaptureStyle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun CalibrationMinigameScreen(
@@ -48,6 +53,7 @@ internal fun CalibrationMinigameScreen(
 ) {
     val game = remember { CalibrationMinigame() }
     var epoch by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
     fun act(block: CalibrationMinigame.() -> Unit) {
         game.block()
         epoch++
@@ -70,8 +76,13 @@ internal fun CalibrationMinigameScreen(
             onNext = { leftover ->
                 act {
                     recordInk(leftover)
-                    if (next() == CalibrationEvent.ReadyToCommit) {
-                        recognizer.commitTraining(payload())
+                    val payload = when (val event = next()) {
+                        is CalibrationEvent.Advanced -> event.payload
+                        is CalibrationEvent.ReadyToCommit -> event.payload
+                        else -> null
+                    }
+                    if (payload != null) {
+                        scope.launch(Dispatchers.IO + NonCancellable) { recognizer.commitTraining(payload) }
                     }
                 }
             },
@@ -146,7 +157,7 @@ private fun GlyphWritingPanel(
 ) {
     val glyph = sessionLabel?.toString().orEmpty()
     val settled by rememberUpdatedState(onSettled)
-    var canvas: DrawingCanvasView? = null
+    var canvas by remember { mutableStateOf<DrawingCanvasView?>(null) }
     Box(modifier = modifier.fillMaxSize()) {
         key(sessionLabel) {
             AndroidView(
@@ -156,12 +167,11 @@ private fun GlyphWritingPanel(
                         acceptsTool = StylusGate::acceptsTraining,
                         autoSettle = true,
                         keepInkAfterSettle = true,
-                    ).apply {
+                    ).also { canvas = it }.apply {
                         setOnGlyphSettledListener { strokes -> settled(strokes) }
                     }
                 },
                 update = { view ->
-                    canvas = view
                     view.configure(capture)
                     view.setPrompt(glyph)
                     view.setOnGlyphSettledListener { strokes -> settled(strokes) }

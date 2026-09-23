@@ -21,9 +21,10 @@ class DrawingCanvasView(
     private val autoSettle: Boolean = true,
     private val keepInkAfterSettle: Boolean = false,
 ) : View(context) {
-    private val kept = ArrayList<Stroke>()
     private val finished = ArrayList<Stroke>()
     private var active: Stroke? = null
+    private val inkPath = Path()
+    private val activePath = Path()
     private var settledListener: OnGlyphSettledListener? = null
     private val settleHandler = Handler(Looper.getMainLooper())
     private val settleRunnable = Runnable { dispatchSettledGlyph() }
@@ -41,10 +42,7 @@ class DrawingCanvasView(
 
     fun cancelPendingGlyph() {
         settleHandler.removeCallbacks(settleRunnable)
-        active = null
-        finished.clear()
-        kept.clear()
-        invalidate()
+        clearInk()
     }
 
     fun takeInk(): List<Stroke> {
@@ -52,11 +50,21 @@ class DrawingCanvasView(
         val strokes = ArrayList<Stroke>(finished.size + 1)
         strokes.addAll(finished)
         active?.let { strokes.add(it) }
+        clearInk()
+        return strokes
+    }
+
+    private fun clearInk() {
         active = null
         finished.clear()
-        kept.clear()
+        inkPath.reset()
+        activePath.reset()
         invalidate()
-        return strokes
+    }
+
+    override fun onDetachedFromWindow() {
+        settleHandler.removeCallbacks(settleRunnable)
+        super.onDetachedFromWindow()
     }
 
     private val ink = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -95,6 +103,8 @@ class DrawingCanvasView(
                 val stroke = Stroke()
                 stroke.append(event.x, event.y)
                 active = stroke
+                activePath.reset()
+                activePath.moveTo(event.x, event.y)
                 invalidate()
             }
             MotionEvent.ACTION_MOVE -> {
@@ -102,20 +112,25 @@ class DrawingCanvasView(
                 val history = event.historySize
                 for (i in 0 until history) {
                     stroke.append(event.getHistoricalX(i), event.getHistoricalY(i))
+                    activePath.lineTo(event.getHistoricalX(i), event.getHistoricalY(i))
                 }
                 stroke.append(event.x, event.y)
+                activePath.lineTo(event.x, event.y)
                 invalidate()
             }
             MotionEvent.ACTION_UP -> {
                 val stroke = active ?: return true
                 stroke.append(event.x, event.y)
                 finished.add(stroke)
+                appendStroke(inkPath, stroke)
                 active = null
+                activePath.reset()
                 if (autoSettle) scheduleSettle()
                 invalidate()
             }
             MotionEvent.ACTION_CANCEL -> {
                 active = null
+                activePath.reset()
                 if (autoSettle && finished.isNotEmpty()) scheduleSettle()
                 invalidate()
             }
@@ -133,13 +148,8 @@ class DrawingCanvasView(
             val y = height / 2f - (metrics.ascent + metrics.descent) / 2f
             canvas.drawText(label, width / 2f, y, promptPaint)
         }
-        for (stroke in kept) {
-            drawStroke(canvas, stroke)
-        }
-        for (stroke in finished) {
-            drawStroke(canvas, stroke)
-        }
-        active?.let { drawStroke(canvas, it) }
+        canvas.drawPath(inkPath, ink)
+        canvas.drawPath(activePath, ink)
     }
 
     private fun scheduleSettle() {
@@ -151,19 +161,17 @@ class DrawingCanvasView(
         if (finished.isEmpty()) return
         val snapshot = finished.toList()
         finished.clear()
-        if (keepInkAfterSettle) kept.addAll(snapshot)
+        if (!keepInkAfterSettle) inkPath.reset()
         invalidate()
         settledListener?.onGlyphSettled(snapshot)
     }
 
-    private fun drawStroke(canvas: Canvas, stroke: Stroke) {
+    private fun appendStroke(path: Path, stroke: Stroke) {
         val points = stroke.points()
         if (points.isEmpty()) return
-        val path = Path()
         path.moveTo(points[0].x, points[0].y)
         for (i in 1 until points.size) {
             path.lineTo(points[i].x, points[i].y)
         }
-        canvas.drawPath(path, ink)
     }
 }

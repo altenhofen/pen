@@ -81,7 +81,8 @@ private fun allocateSampleCounts(strokes: List<List<Point2>>): IntArray? {
     if (minimum > SAMPLE_COUNT) return null
     var remaining = SAMPLE_COUNT - minimum
     val ink = lengths.sum()
-    if (remaining == 0 || ink == 0f) return counts
+    if (ink == 0f) return null
+    if (remaining == 0) return counts
     val raw = FloatArray(strokes.size) { index ->
         if (lengths[index] == 0f) 0f else remaining * lengths[index] / ink
     }

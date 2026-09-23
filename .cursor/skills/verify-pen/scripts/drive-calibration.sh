@@ -9,6 +9,7 @@ export PATH="$ANDROID_HOME/platform-tools:$PATH"
 
 "$(dirname "$0")/doctor.sh"
 mkdir -p "$OUT"
+adb -s "$SERIAL" logcat -c -b crash
 
 tap_label() {
   local label="$1"
@@ -83,6 +84,17 @@ for _ in $(seq 1 20); do
   fi
   sleep 1
 done
+grep -q 'text="Now writing 0"' "$OUT/hierarchy.xml"
+echo "hold still: input swipe 540 1200 540 1200 3000" >>"$OUT/drive.log"
+adb -s "$SERIAL" shell input swipe 540 1200 540 1200 3000
+sleep 2
+crash="$(adb -s "$SERIAL" logcat -d -b crash)"
+if printf '%s' "$crash" | grep -q 'io.github.altenhofen.pen'; then
+  printf '%s\n' "$crash" >>"$OUT/drive.log"
+  echo "crashed after holding still on the canvas" >&2
+  exit 1
+fi
+adb -s "$SERIAL" exec-out uiautomator dump /dev/tty >"$OUT/hierarchy.xml"
 grep -q 'text="Now writing 0"' "$OUT/hierarchy.xml"
 adb -s "$SERIAL" exec-out screencap -p >"$OUT/screen.png"
 echo "proof: $OUT"

@@ -9,7 +9,8 @@ import java.util.UUID
 
 internal sealed interface CalibrationEvent {
     data object Recorded : CalibrationEvent
-    data object ReadyToCommit : CalibrationEvent
+    data class Advanced(val payload: CalibrationPayload) : CalibrationEvent
+    data class ReadyToCommit(val payload: CalibrationPayload) : CalibrationEvent
     data object Ignored : CalibrationEvent
 }
 
@@ -47,25 +48,20 @@ internal class CalibrationSession private constructor(
     }
 
     fun advanceToNextLabel(): CalibrationEvent {
+        val label = currentLabel ?: return CalibrationEvent.Ignored
         if (!canAdvance) return CalibrationEvent.Ignored
-        if (activeIndex == labels.lastIndex) {
-            finished = true
-            return CalibrationEvent.ReadyToCommit
-        }
-        activeIndex++
-        return CalibrationEvent.Recorded
-    }
-
-    fun payload(): CalibrationPayload {
-        check(finished) { "payload before every label has samples and the last Next" }
-        return CalibrationPayload(
+        val payload = CalibrationPayload(
             sessionId,
-            labels.flatMap { label ->
-                samples.getValue(label).mapIndexed { index, vector ->
-                    PrototypeCluster(ClusterId.training(label, index), label, vector)
-                }
+            samples.getValue(label).mapIndexed { index, vector ->
+                PrototypeCluster(ClusterId.training(label, sessionId, index), label, vector)
             },
         )
+        if (activeIndex == labels.lastIndex) {
+            finished = true
+            return CalibrationEvent.ReadyToCommit(payload)
+        }
+        activeIndex++
+        return CalibrationEvent.Advanced(payload)
     }
 
     companion object {

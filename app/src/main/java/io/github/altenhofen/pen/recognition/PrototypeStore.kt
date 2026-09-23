@@ -39,9 +39,6 @@ internal abstract class PrototypeDao {
     @Query("DELETE FROM prototype_clusters")
     abstract fun deleteAll()
 
-    @Query("DELETE FROM prototype_clusters WHERE cluster_id = :exact OR cluster_id LIKE :like")
-    abstract fun deleteMatching(exact: String, like: String)
-
     @Transaction
     open fun replaceAll(rows: List<ClusterRow>) {
         require(rows.isNotEmpty()) { "replaceAll requires at least one cluster" }
@@ -88,8 +85,8 @@ internal class PrototypeStore(private val dao: PrototypeDao) {
         dao.upsert(listOf(cluster.toRow()))
     }
 
-    fun adapt(clusterId: ClusterId, sample: FeatureVector, feedback: Feedback): PrototypeCluster {
-        val current = requireNotNull(dao.find(clusterId.value)) { "unknown cluster ${clusterId.value}" }.toCluster()
+    fun adapt(clusterId: ClusterId, sample: FeatureVector, feedback: Feedback): PrototypeCluster? {
+        val current = dao.find(clusterId.value)?.toCluster() ?: return null
         val prototype = current.vector.copyValues()
         val values = when (feedback) {
             Feedback.Accepted -> PrototypeUpdate.attract(prototype, sample.copyValues(), PrototypeUpdate.ACCEPT_REWARD)
@@ -102,9 +99,6 @@ internal class PrototypeStore(private val dao: PrototypeDao) {
 
     fun commitTraining(payload: CalibrationPayload) {
         seedIfEmpty()
-        payload.clusters.map { it.label }.distinct().forEach { label ->
-            dao.deleteMatching("train:$label", "train:$label:%")
-        }
         dao.upsert(payload.clusters.map { it.toRow() })
     }
 

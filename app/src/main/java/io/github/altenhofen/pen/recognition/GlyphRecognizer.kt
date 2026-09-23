@@ -6,6 +6,7 @@ enum class DistanceMetric {
 }
 
 internal class GlyphRecognizer(private val metric: DistanceMetric = DistanceMetric.DTW) {
+    @Volatile
     private var clusters: List<PrototypeCluster> = emptyList()
 
     fun replaceAll(clusters: List<PrototypeCluster>) {

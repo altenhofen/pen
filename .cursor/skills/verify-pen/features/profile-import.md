@@ -4,7 +4,7 @@ Profile import is the restore path behind `Import profile` on Pen settings. Tapp
 
 ## Sub-features
 
-- `profile-import-open` shows `Recent files` on the document picker after the user taps `Import profile`.
+- `profile-import-open` shows the system document picker (`com.google.android.documentsui`) after the user taps `Import profile`.
 
 ## How to get to it (user POV)
 
@@ -20,11 +20,11 @@ Preconditions:
 
 - **Open settings.** The user opens pen. Run `adb -s emulator-5556 shell am start -n io.github.altenhofen.pen/.MainActivity`. Exit code `0`. Wait until a dump contains `text="Import profile"`.
 - **Open import.** The user taps `Import profile`. Run `.cursor/skills/verify-pen/scripts/drive-profile-import.sh`. The script taps the clickable parent of that text node.
-- **Read the picker.** The picker shows `Recent files`. `artifacts/profile-import/hierarchy.xml` contains that exact `text=` value.
+- **Read the picker.** The picker is in front. `artifacts/profile-import/hierarchy.xml` contains `package="com.google.android.documentsui"`.
 
 ## Gotchas
 
 - Tap the clickable parent of `Import profile`, not `Export profile` above it.
-- Picker chrome is OEM DocumentsUI. This recipe was proven on AVD `Medium_Phone_API_37.0` with `text="Recent files"`.
+- Picker chrome is OEM DocumentsUI. It opens on the last folder used, so `Recent files` shows only on a fresh device. After the export drive it opens on `Downloads`. Proof keys on the package, not a folder title.
 - Completing a file pick is optional for this proof. `Imported` appears only after a chosen zip decodes.
 - The script sends Back after the dump so the picker does not linger.

@@ -53,13 +53,13 @@ echo "tap: $tap" >>"$OUT/drive.log"
 adb -s "$SERIAL" shell input tap $tap
 for _ in $(seq 1 20); do
   if adb -s "$SERIAL" exec-out uiautomator dump /dev/tty >"$OUT/hierarchy.xml" 2>/dev/null; then
-    if grep -q 'text="Recent files"' "$OUT/hierarchy.xml"; then
+    if grep -q 'package="com.google.android.documentsui"' "$OUT/hierarchy.xml"; then
       break
     fi
   fi
   sleep 1
 done
-grep -q 'text="Recent files"' "$OUT/hierarchy.xml"
+grep -q 'package="com.google.android.documentsui"' "$OUT/hierarchy.xml"
 adb -s "$SERIAL" exec-out screencap -p >"$OUT/screen.png"
 adb -s "$SERIAL" shell input keyevent 4
 echo "proof: $OUT"
