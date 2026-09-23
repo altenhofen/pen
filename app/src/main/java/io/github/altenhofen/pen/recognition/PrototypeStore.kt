@@ -47,9 +47,70 @@ internal abstract class PrototypeDao {
     }
 }
 
-@Database(entities = [ClusterRow::class], version = 2, exportSchema = false)
+@Entity(tableName = "word_samples")
+internal data class WordSampleRow(
+    @PrimaryKey val id: String,
+    val word: String,
+    val packed: ByteArray,
+    @ColumnInfo(name = "confirmed_at") val confirmedAt: Long,
+)
+
+@Dao
+internal abstract class WordSampleDao {
+    @Query("SELECT * FROM word_samples")
+    abstract fun all(): List<WordSampleRow>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract fun upsert(rows: List<WordSampleRow>)
+
+    @Query("DELETE FROM word_samples WHERE id IN (:ids)")
+    abstract fun delete(ids: List<String>)
+
+    @Query("DELETE FROM word_samples")
+    abstract fun deleteAll()
+
+    @Transaction
+    open fun apply(inserted: List<WordSampleRow>, deletedIds: List<String>) {
+        if (deletedIds.isNotEmpty()) delete(deletedIds)
+        upsert(inserted)
+    }
+
+    @Transaction
+    open fun replaceAll(rows: List<WordSampleRow>) {
+        deleteAll()
+        upsert(rows)
+    }
+}
+
+@Database(entities = [ClusterRow::class, WordSampleRow::class], version = 3, exportSchema = false)
 internal abstract class PrototypeDatabase : RoomDatabase() {
     abstract fun prototypes(): PrototypeDao
+    abstract fun words(): WordSampleDao
+
+    companion object {
+        @Volatile
+        private var instance: PrototypeDatabase? = null
+
+        fun open(context: Context): PrototypeDatabase {
+            instance?.let { return it }
+            return synchronized(this) {
+                instance ?: Room.databaseBuilder(
+                    context.applicationContext,
+                    PrototypeDatabase::class.java,
+                    "prototypes.db",
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).allowMainThreadQueries().build().also { instance = it }
+            }
+        }
+    }
+}
+
+internal val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS word_samples (" +
+                "id TEXT NOT NULL, word TEXT NOT NULL, packed BLOB NOT NULL, confirmed_at INTEGER NOT NULL, PRIMARY KEY(id))",
+        )
+    }
 }
 
 internal val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -103,33 +164,42 @@ internal class PrototypeStore(private val dao: PrototypeDao) {
     }
 
     companion object {
-        @Volatile
-        private var instance: PrototypeStore? = null
-
-        fun open(context: Context): PrototypeStore {
-            instance?.let { return it }
-            return synchronized(this) {
-                instance ?: PrototypeStore(
-                    Room.databaseBuilder(
-                        context.applicationContext,
-                        PrototypeDatabase::class.java,
-                        "prototypes.db",
-                    ).addMigrations(MIGRATION_1_2).allowMainThreadQueries().build().prototypes(),
-                ).also { instance = it }
-            }
-        }
+        fun open(context: Context): PrototypeStore = PrototypeStore(PrototypeDatabase.open(context).prototypes())
     }
 }
 
-private fun PrototypeCluster.toRow(): ClusterRow {
-    val values = vector.copyValues()
-    val buffer = ByteBuffer.allocate(values.size * Float.SIZE_BYTES).order(ByteOrder.LITTLE_ENDIAN)
-    values.forEach { buffer.putFloat(it) }
-    return ClusterRow(id.value, label.toString(), buffer.array())
+internal class WordMemoryStore(private val dao: WordSampleDao) {
+    fun load(): WordMemory = WordMemory(dao.all().map { it.toSample() }.sortedBy { it.confirmedAt })
+
+    fun apply(inserted: WordSample, evicted: List<WordSample>) {
+        dao.apply(listOf(inserted.toRow()), evicted.map { it.id })
+    }
+
+    fun replaceAll(samples: List<WordSample>) {
+        dao.replaceAll(samples.map { it.toRow() })
+    }
+
+    companion object {
+        fun open(context: Context): WordMemoryStore = WordMemoryStore(PrototypeDatabase.open(context).words())
+    }
 }
 
-private fun ClusterRow.toCluster(): PrototypeCluster {
-    val buffer = ByteBuffer.wrap(packed).order(ByteOrder.LITTLE_ENDIAN)
-    val values = FloatArray(packed.size / Float.SIZE_BYTES) { buffer.float }
-    return PrototypeCluster(ClusterId(clusterId), label.single(), FeatureVector.from(values))
+private fun FeatureVector.pack(): ByteArray {
+    val values = copyValues()
+    val buffer = ByteBuffer.allocate(values.size * Float.SIZE_BYTES).order(ByteOrder.LITTLE_ENDIAN)
+    values.forEach { buffer.putFloat(it) }
+    return buffer.array()
 }
+
+private fun unpack(packed: ByteArray): FloatArray {
+    val buffer = ByteBuffer.wrap(packed).order(ByteOrder.LITTLE_ENDIAN)
+    return FloatArray(packed.size / Float.SIZE_BYTES) { buffer.float }
+}
+
+private fun WordSample.toRow() = WordSampleRow(id, word, vector.pack(), confirmedAt)
+
+private fun WordSampleRow.toSample() = WordSample(id, word, FeatureVector.from(unpack(packed), WORD_SAMPLE_COUNT), confirmedAt)
+
+private fun PrototypeCluster.toRow() = ClusterRow(id.value, label.toString(), vector.pack())
+
+private fun ClusterRow.toCluster() = PrototypeCluster(ClusterId(clusterId), label.single(), FeatureVector.from(unpack(packed)))

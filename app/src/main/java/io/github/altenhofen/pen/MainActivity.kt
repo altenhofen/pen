@@ -24,6 +24,7 @@ import androidx.lifecycle.lifecycleScope
 import io.github.altenhofen.pen.profile.ProfileTransfer
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
 import io.github.altenhofen.pen.recognition.PrototypeStore
+import io.github.altenhofen.pen.recognition.WordMemoryStore
 import io.github.altenhofen.pen.settings.MotorSettings
 import io.github.altenhofen.pen.settings.MotorSettingsStore
 import io.github.altenhofen.pen.ui.CalibrationMinigameScreen
@@ -50,7 +51,12 @@ class MainActivity : ComponentActivity() {
     private val recognizer by lazy { AdaptiveRecognizer.open(applicationContext) }
     private val settingsStore by lazy { MotorSettingsStore.open(applicationContext) }
     private val transfer by lazy {
-        ProfileTransfer(settingsStore, PrototypeStore.open(applicationContext), contentResolver)
+        ProfileTransfer(
+            settingsStore,
+            PrototypeStore.open(applicationContext),
+            WordMemoryStore.open(applicationContext),
+            contentResolver,
+        )
     }
     private val transferStatus = MutableStateFlow<ProfileTransferStatus?>(null)
 

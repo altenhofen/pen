@@ -30,4 +30,7 @@
     <string name="calibrate_now_writing">Now writing %1$s</string>
     <string name="calibrate_samples_so_far">%1$d samples</string>
     <string name="calibrate_complete">Training saved for %1$d characters</string>
+    <string name="ime_key_space">space</string>
+    <string name="ime_model_downloading">Downloading handwriting model</string>
+    <string name="ime_model_offline">Offline, using calibration</string>
 </resources>
