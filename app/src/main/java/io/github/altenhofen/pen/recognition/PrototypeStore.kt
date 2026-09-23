@@ -39,6 +39,9 @@ internal abstract class PrototypeDao {
     @Query("DELETE FROM prototype_clusters")
     abstract fun deleteAll()
 
+    @Query("DELETE FROM prototype_clusters WHERE cluster_id = :exact OR cluster_id LIKE :like")
+    abstract fun deleteMatching(exact: String, like: String)
+
     @Transaction
     open fun replaceAll(rows: List<ClusterRow>) {
         require(rows.isNotEmpty()) { "replaceAll requires at least one cluster" }
@@ -99,6 +102,9 @@ internal class PrototypeStore(private val dao: PrototypeDao) {
 
     fun commitTraining(payload: CalibrationPayload) {
         seedIfEmpty()
+        payload.clusters.map { it.label }.distinct().forEach { label ->
+            dao.deleteMatching("train:$label", "train:$label:%")
+        }
         dao.upsert(payload.clusters.map { it.toRow() })
     }
 

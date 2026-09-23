@@ -1,11 +1,11 @@
 package io.github.altenhofen.pen.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -14,13 +14,15 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -62,12 +64,12 @@ internal fun CalibrationMinigameScreen(
         )
         is GlyphCalibrationPhase.WriteGlyphs -> GlyphWritingPanel(
             sessionLabel = phase.session.currentLabel,
-            progress = phase.session.progress,
-            awaitingAdvance = phase.session.awaitingAdvance,
+            sampleCount = phase.session.sampleCount,
             capture = capture,
-            onStrokeSettled = { strokes -> act { recordSettled(strokes) } },
-            onNext = {
+            onSettled = { strokes -> act { recordInk(strokes) } },
+            onNext = { leftover ->
                 act {
+                    recordInk(leftover)
                     if (next() == CalibrationEvent.ReadyToCommit) {
                         recognizer.commitTraining(payload())
                     }
@@ -135,47 +137,59 @@ private fun GlyphPickerGrid(
 @Composable
 private fun GlyphWritingPanel(
     sessionLabel: Char?,
-    progress: Pair<Int, Int>,
-    awaitingAdvance: Boolean,
+    sampleCount: Int,
     capture: CaptureStyle,
-    onStrokeSettled: (List<Stroke>) -> Unit,
-    onNext: () -> Unit,
+    onSettled: (List<Stroke>) -> Unit,
+    onNext: (List<Stroke>) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val settled by rememberUpdatedState(onStrokeSettled)
-    Column(
-        modifier = modifier.padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(stringResource(R.string.calibrate_title), style = MaterialTheme.typography.headlineSmall)
-        Text(
-            stringResource(
-                R.string.calibrate_write_prompt,
-                sessionLabel?.toString().orEmpty(),
-                progress.first,
-                progress.second,
-            ),
-        )
+    val glyph = sessionLabel?.toString().orEmpty()
+    val settled by rememberUpdatedState(onSettled)
+    var canvas: DrawingCanvasView? = null
+    Box(modifier = modifier.fillMaxSize()) {
         key(sessionLabel) {
             AndroidView(
                 factory = { context ->
-                    DrawingCanvasView(context, acceptsTool = StylusGate::acceptsTraining).apply {
+                    DrawingCanvasView(
+                        context,
+                        acceptsTool = StylusGate::acceptsTraining,
+                        autoSettle = true,
+                        keepInkAfterSettle = true,
+                    ).apply {
                         setOnGlyphSettledListener { strokes -> settled(strokes) }
                     }
                 },
                 update = { view ->
+                    canvas = view
                     view.configure(capture)
+                    view.setPrompt(glyph)
                     view.setOnGlyphSettledListener { strokes -> settled(strokes) }
                 },
-                modifier = Modifier.fillMaxWidth().height(320.dp),
+                modifier = Modifier.fillMaxSize(),
             )
         }
-        Button(onClick = onNext, enabled = awaitingAdvance) {
-            Text(stringResource(R.string.action_next))
-        }
-        Button(onClick = onCancel) {
+        TextButton(
+            onClick = onCancel,
+            modifier = Modifier.align(Alignment.TopStart).padding(4.dp),
+        ) {
             Text(stringResource(R.string.action_cancel))
+        }
+        Column(
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                stringResource(R.string.calibrate_now_writing, glyph),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Text(stringResource(R.string.calibrate_samples_so_far, sampleCount))
+        }
+        Button(
+            onClick = { onNext(canvas?.takeInk().orEmpty()) },
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+        ) {
+            Text(stringResource(R.string.action_next))
         }
     }
 }

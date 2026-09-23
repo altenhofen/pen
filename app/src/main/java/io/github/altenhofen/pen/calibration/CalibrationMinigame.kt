@@ -44,10 +44,10 @@ internal class CalibrationMinigame {
         session = CalibrationSession.begin(glyphs.labels)
     }
 
-    fun recordSettled(strokes: List<Stroke>): CalibrationEvent {
+    fun recordInk(strokes: List<Stroke>): CalibrationEvent {
         val active = session ?: return CalibrationEvent.Ignored
         if (complete) return CalibrationEvent.Ignored
-        return active.recordSettled(strokes)
+        return active.recordInk(strokes)
     }
 
     fun next(): CalibrationEvent {

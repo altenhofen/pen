@@ -25,6 +25,7 @@
     <string name="action_next">Next</string>
     <string name="action_done">Done</string>
     <string name="action_cancel">Cancel</string>
-    <string name="calibrate_write_prompt">Draw %1$s: %2$d of %3$d samples collected</string>
+    <string name="calibrate_now_writing">Now writing %1$s</string>
+    <string name="calibrate_samples_so_far">%1$d samples</string>
     <string name="calibrate_complete">Training saved for %1$d characters</string>
 </resources>

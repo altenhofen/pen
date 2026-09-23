@@ -35,7 +35,7 @@ Read-only. Exit `0` only when the serial is `emulator-5556`, `sys.boot_completed
 
 ## Drive
 
-Harness is `adb` on `emulator-5556`. Stable handles are the visible strings `Pen settings`, `Calibrate`, `Set as default keyboard`, `Export profile`, `Import profile`, `Select characters to train`, `Start`, `Draw 0: 0 of 3 samples collected`, `pen-configuration.zip`, `Recent files`, and `pen ink`. There are no content descriptions or test tags. Drive against English `values/strings.xml`. `app_name` and `ime_name` are not translated.
+Harness is `adb` on `emulator-5556`. Stable handles are the visible strings `Pen settings`, `Calibrate`, `Set as default keyboard`, `Export profile`, `Import profile`, `Select characters to train`, `Start`, `Now writing 0`, `pen-configuration.zip`, `Recent files`, and `pen ink`. There are no content descriptions or test tags. Drive against English `values/strings.xml`. `app_name` and `ime_name` are not translated.
 
 ```bash
 .cursor/skills/verify-pen/scripts/drive-settings.sh
@@ -49,7 +49,7 @@ Calibration is a second drive from the same activity.
 .cursor/skills/verify-pen/scripts/drive-calibration.sh
 ```
 
-Proof is the dump containing `text="Draw 0: 0 of 3 samples collected"` after a tap on `Calibrate`, a tap on `0`, and a tap on `Start`, plus the screenshot.
+Proof is the dump containing `text="Now writing 0"` after a tap on `Calibrate`, a tap on `0`, and a tap on `Start`, plus the screenshot.
 
 Default keyboard is a third drive from settings.
 

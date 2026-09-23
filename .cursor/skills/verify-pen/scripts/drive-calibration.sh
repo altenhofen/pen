@@ -77,12 +77,12 @@ echo "tap start: $tap" >>"$OUT/drive.log"
 for _ in $(seq 1 20); do
   adb -s "$SERIAL" shell input tap $tap
   if adb -s "$SERIAL" exec-out uiautomator dump /dev/tty >"$OUT/hierarchy.xml" 2>/dev/null; then
-    if grep -q 'text="Draw 0: 0 of 3 samples collected"' "$OUT/hierarchy.xml"; then
+    if grep -q 'text="Now writing 0"' "$OUT/hierarchy.xml"; then
       break
     fi
   fi
   sleep 1
 done
-grep -q 'text="Draw 0: 0 of 3 samples collected"' "$OUT/hierarchy.xml"
+grep -q 'text="Now writing 0"' "$OUT/hierarchy.xml"
 adb -s "$SERIAL" exec-out screencap -p >"$OUT/screen.png"
 echo "proof: $OUT"
