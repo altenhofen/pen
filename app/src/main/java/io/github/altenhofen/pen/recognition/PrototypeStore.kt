@@ -95,6 +95,11 @@ internal class PrototypeStore(private val dao: PrototypeDao) {
         dao.insertUnlessAnyExists(payload.clusters.map { it.toRow() })
     }
 
+    fun commitUserTraining(payload: CalibrationPayload) {
+        seedIfEmpty()
+        dao.upsert(payload.clusters.map { it.toRow() })
+    }
+
     companion object {
         @Volatile
         private var instance: PrototypeStore? = null

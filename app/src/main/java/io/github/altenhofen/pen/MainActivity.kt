@@ -19,9 +19,16 @@ import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
 import io.github.altenhofen.pen.settings.MotorSettings
 import io.github.altenhofen.pen.settings.MotorSettingsStore
 import io.github.altenhofen.pen.ui.CalibrationScreen
+import io.github.altenhofen.pen.ui.CharacterFineTuneScreen
 import io.github.altenhofen.pen.ui.SettingsScreen
 import io.github.altenhofen.pen.ui.theme.PenTheme
 import kotlinx.coroutines.launch
+
+private enum class LauncherScreen {
+    Settings,
+    Calibrate89,
+    FineTuneAlphabet,
+}
 
 class MainActivity : ComponentActivity() {
     private val recognizer by lazy { AdaptiveRecognizer.open(applicationContext) }
@@ -34,21 +41,27 @@ class MainActivity : ComponentActivity() {
             PenTheme {
                 val current by settings.values.collectAsState(initial = MotorSettings.Default)
                 val scope = rememberCoroutineScope()
-                var calibrating by rememberSaveable { mutableStateOf(false) }
-                BackHandler(enabled = calibrating) { calibrating = false }
+                var screen by rememberSaveable { mutableStateOf(LauncherScreen.Settings) }
+                BackHandler(enabled = screen != LauncherScreen.Settings) { screen = LauncherScreen.Settings }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    if (calibrating) {
-                        CalibrationScreen(
-                            recognizer = recognizer,
-                            capture = current.capture(),
-                            onDone = { calibrating = false },
-                            modifier = Modifier.padding(innerPadding),
-                        )
-                    } else {
-                        SettingsScreen(
+                    when (screen) {
+                        LauncherScreen.Settings -> SettingsScreen(
                             current = current,
                             onUpdate = { transform -> scope.launch { settings.update(transform) } },
-                            onCalibrate = { calibrating = true },
+                            onCalibrate = { screen = LauncherScreen.Calibrate89 },
+                            onFineTune = { screen = LauncherScreen.FineTuneAlphabet },
+                            modifier = Modifier.padding(innerPadding),
+                        )
+                        LauncherScreen.Calibrate89 -> CalibrationScreen(
+                            recognizer = recognizer,
+                            capture = current.capture(),
+                            onDone = { screen = LauncherScreen.Settings },
+                            modifier = Modifier.padding(innerPadding),
+                        )
+                        LauncherScreen.FineTuneAlphabet -> CharacterFineTuneScreen(
+                            recognizer = recognizer,
+                            capture = current.capture(),
+                            onDone = { screen = LauncherScreen.Settings },
                             modifier = Modifier.padding(innerPadding),
                         )
                     }

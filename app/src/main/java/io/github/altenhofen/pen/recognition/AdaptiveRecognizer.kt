@@ -25,6 +25,12 @@ internal class AdaptiveRecognizer(
 
     fun commitCalibration(payload: CalibrationPayload) {
         store.commitCalibration(payload)
+        reload()
+    }
+
+    fun commitUserTraining(payload: CalibrationPayload) {
+        store.commitUserTraining(payload)
+        reload()
     }
 
     companion object {

@@ -44,6 +44,29 @@ class CalibrationSessionTest {
         assertEquals(38, dao.all().size)
         assertEquals(afterAdapt, dao.all().map { it.packed.toList() })
     }
+
+    @Test
+    fun userTrainingStoresOneClusterPerSample() {
+        val session = CalibrationSession.begin(listOf('a', 'b'), samplesPerLabel = 2, oneClusterPerSample = true)
+        repeat(2) { session.recordSettled(seedStrokes('a', jitter = it * 0.05f)) }
+        repeat(2) { session.recordSettled(seedStrokes('b', jitter = it * 0.05f)) }
+
+        val dao = InMemoryPrototypeDao()
+        val store = PrototypeStore(dao)
+        AdaptiveRecognizer(store).commitUserTraining(session.payload())
+
+        val ids = dao.all().map { it.clusterId }.filter { it.startsWith("user:") }.sorted()
+        assertEquals(
+            listOf(
+                "user:${session.sessionId}:a:0",
+                "user:${session.sessionId}:a:1",
+                "user:${session.sessionId}:b:0",
+                "user:${session.sessionId}:b:1",
+            ),
+            ids,
+        )
+        assertEquals(40, dao.all().size)
+    }
 }
 
 private class InMemoryPrototypeDao : PrototypeDao() {

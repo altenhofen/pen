@@ -22,7 +22,7 @@ This directory is the maintained source for verifying the user-facing behavior o
 
 - Capture the user action and the resulting state, not only the final screen.
 - UI proof includes a UI hierarchy dump and a screenshot.
-- Record the feature ID (`settings`, `calibration`, or `ink-keyboard`) with every artifact.
+- Record the feature ID (`settings`, `calibration`, `character-fine-tune`, or `ink-keyboard`) with every artifact.
 - Report an unreachable path with the attempted command and the unmet precondition.
 - Do not report a skipped entry point as verified through a different path.
 
@@ -37,6 +37,7 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 
 ## Features
 
-- [Settings](./settings.md) covers the launcher activity, the three motor sliders, and `Calibrate 8 and 9`.
+- [Settings](./settings.md) covers the launcher activity, the three motor sliders, `Calibrate 8 and 9`, and `Fine-tune 0-9 and a-z`.
 - [Calibration](./calibration.md) covers the training canvas opened from that button.
+- [Character fine-tune](./character-fine-tune.md) covers the full alphabet training canvas.
 - [Ink keyboard](./ink-keyboard.md) covers the system keyboard list entry `pen ink`.

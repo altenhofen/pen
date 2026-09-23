@@ -23,6 +23,7 @@ fun SettingsScreen(
     current: MotorSettings,
     onUpdate: ((MotorSettings) -> MotorSettings) -> Unit,
     onCalibrate: () -> Unit,
+    onFineTune: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -50,6 +51,9 @@ fun SettingsScreen(
         )
         Button(onClick = onCalibrate) {
             Text("Calibrate 8 and 9")
+        }
+        Button(onClick = onFineTune) {
+            Text("Fine-tune 0-9 and a-z")
         }
     }
 }

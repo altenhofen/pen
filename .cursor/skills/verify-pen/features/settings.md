@@ -1,12 +1,13 @@
 # Settings
 
-Settings is the first screen after the user opens pen. It shows the heading `Pen settings`, sliders for settle window, stroke width, and ambiguity threshold, and a `Calibrate 8 and 9` button.
+Settings is the first screen after the user opens pen. It shows the heading `Pen settings`, sliders for settle window, stroke width, and ambiguity threshold, a `Calibrate 8 and 9` button, and a `Fine-tune 0-9 and a-z` button.
 
 ## Sub-features
 
 - `settings-launch` shows `Pen settings` after the user opens the app from the launcher.
 - `settings-sliders` shows `Settle window`, `Stroke width`, and `Ambiguity threshold` on that same screen.
 - `settings-calibrate-entry` shows the `Calibrate 8 and 9` button.
+- `settings-fine-tune-entry` shows the `Fine-tune 0-9 and a-z` button.
 
 ## How to get to it (user POV)
 

@@ -23,6 +23,7 @@ internal class CalibrationSession private constructor(
     val sessionId: String,
     val labels: List<Char>,
     val samplesPerLabel: Int,
+    private val oneClusterPerSample: Boolean,
 ) {
     private val samples: Map<Char, MutableList<FeatureVector>> = labels.associateWith { ArrayList(samplesPerLabel) }
 
@@ -41,20 +42,40 @@ internal class CalibrationSession private constructor(
 
     fun payload(): CalibrationPayload {
         check(currentLabel == null) { "payload before every label has $samplesPerLabel samples" }
-        val clusters = labels.map { label ->
-            PrototypeCluster(ClusterId.calibration(sessionId, label), label, medoid(samples.getValue(label)))
+        val clusters = if (oneClusterPerSample) {
+            labels.flatMap { label ->
+                samples.getValue(label).mapIndexed { index, vector ->
+                    PrototypeCluster(ClusterId.userTraining(sessionId, label, index), label, vector)
+                }
+            }
+        } else {
+            labels.map { label ->
+                PrototypeCluster(ClusterId.calibration(sessionId, label), label, medoid(samples.getValue(label)))
+            }
         }
         return CalibrationPayload(sessionId, clusters)
     }
 
     companion object {
-        fun begin(labels: List<Char>, samplesPerLabel: Int = 5): CalibrationSession {
+        fun begin(
+            labels: List<Char>,
+            samplesPerLabel: Int = 5,
+            oneClusterPerSample: Boolean = false,
+        ): CalibrationSession {
             require(labels.isNotEmpty() && labels.distinct().size == labels.size)
             require(samplesPerLabel >= 1)
-            return CalibrationSession(UUID.randomUUID().toString(), labels, samplesPerLabel)
+            return CalibrationSession(
+                UUID.randomUUID().toString(),
+                labels,
+                samplesPerLabel,
+                oneClusterPerSample,
+            )
         }
     }
 }
+
+/** Digits and lowercase letters seeded in phase 2; same set users fine-tune in phase 5. */
+val FineTuneAlphabet: List<Char> = ('0'..'9').toList() + ('a'..'z').toList()
 
 private fun medoid(vectors: List<FeatureVector>): FeatureVector =
     vectors.minBy { candidate -> vectors.sumOf { bandedDtw(candidate, it).toDouble() } }

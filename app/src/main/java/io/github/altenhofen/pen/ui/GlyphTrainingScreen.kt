@@ -18,28 +18,31 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import io.github.altenhofen.pen.calibration.CalibrationEvent
 import io.github.altenhofen.pen.calibration.CalibrationSession
+import io.github.altenhofen.pen.calibration.FineTuneAlphabet
 import io.github.altenhofen.pen.ime.DrawingCanvasView
 import io.github.altenhofen.pen.ime.StylusGate
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
 import io.github.altenhofen.pen.settings.CaptureStyle
 
 @Composable
-internal fun CalibrationScreen(
+internal fun GlyphTrainingScreen(
+    title: String,
+    session: CalibrationSession,
     recognizer: AdaptiveRecognizer,
     capture: CaptureStyle,
+    onCommit: (CalibrationSession) -> Unit,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val session = remember { CalibrationSession.begin(listOf('8', '9'), samplesPerLabel = 5) }
     var label by remember { mutableStateOf(session.currentLabel) }
     var progress by remember { mutableStateOf(session.progress) }
 
     Column(modifier = modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Calibrate", style = MaterialTheme.typography.headlineSmall)
+        Text(title, style = MaterialTheme.typography.headlineSmall)
         val current = label
         Text(
             if (current == null) {
-                "Calibration saved for ${session.labels.joinToString(" and ")}"
+                "Training saved for ${session.labels.size} characters"
             } else {
                 "Draw $current: ${progress.first} of ${progress.second} samples collected"
             },
@@ -50,7 +53,7 @@ internal fun CalibrationScreen(
                     .apply {
                         setOnGlyphSettledListener { strokes ->
                             if (session.recordSettled(strokes) == CalibrationEvent.ReadyToCommit) {
-                                recognizer.commitCalibration(session.payload())
+                                onCommit(session)
                             }
                             label = session.currentLabel
                             progress = session.progress
@@ -64,4 +67,48 @@ internal fun CalibrationScreen(
             Text(if (current == null) "Done" else "Cancel")
         }
     }
+}
+
+@Composable
+internal fun CalibrationScreen(
+    recognizer: AdaptiveRecognizer,
+    capture: CaptureStyle,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val session = remember { CalibrationSession.begin(listOf('8', '9'), samplesPerLabel = 5) }
+    GlyphTrainingScreen(
+        title = "Calibrate",
+        session = session,
+        recognizer = recognizer,
+        capture = capture,
+        onCommit = { recognizer.commitCalibration(it.payload()) },
+        onDone = onDone,
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun CharacterFineTuneScreen(
+    recognizer: AdaptiveRecognizer,
+    capture: CaptureStyle,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val session = remember {
+        CalibrationSession.begin(
+            labels = FineTuneAlphabet,
+            samplesPerLabel = 3,
+            oneClusterPerSample = true,
+        )
+    }
+    GlyphTrainingScreen(
+        title = "Fine-tune alphabet",
+        session = session,
+        recognizer = recognizer,
+        capture = capture,
+        onCommit = { recognizer.commitUserTraining(it.payload()) },
+        onDone = onDone,
+        modifier = modifier,
+    )
 }
