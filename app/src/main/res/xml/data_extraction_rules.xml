@@ -1,19 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+    Android 12 and newer. Cloud backup carries the motor sliders only. The prototype clusters and
+    word samples are a model of how one person's hand moves, so they never leave the device except
+    through an export the user has locked with a passphrase. Device-to-device transfer is a direct
+    handset-to-handset copy with no server in between, so it carries everything.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <include domain="file" path="datastore/motor_settings.preferences_pb" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <include domain="file" path="datastore/motor_settings.preferences_pb" />
+        <include domain="database" path="prototypes.db" />
+        <include domain="database" path="prototypes.db-wal" />
+        <include domain="database" path="prototypes.db-shm" />
     </device-transfer>
-    -->
 </data-extraction-rules>
