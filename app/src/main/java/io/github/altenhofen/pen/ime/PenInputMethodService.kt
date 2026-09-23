@@ -15,10 +15,13 @@ import io.github.altenhofen.pen.recognition.WordMemorySource
 import io.github.altenhofen.pen.recognition.WordMemoryStore
 import io.github.altenhofen.pen.recognition.WordSample
 import io.github.altenhofen.pen.recognition.blendSuggestions
+import io.github.altenhofen.pen.recognition.supportsInkLanguage
 import io.github.altenhofen.pen.recognition.wordFeatures
 import java.util.UUID
+import io.github.altenhofen.pen.settings.AppLocales
 import io.github.altenhofen.pen.settings.MotorSettings
 import io.github.altenhofen.pen.settings.MotorSettingsStore
+import io.github.altenhofen.pen.settings.resolveInkLanguage
 
 class PenInputMethodService : InputMethodService() {
     private lateinit var settings: MotorSettingsStore
@@ -39,12 +42,28 @@ class PenInputMethodService : InputMethodService() {
         settings = MotorSettingsStore.open(this)
         recognizer = AdaptiveRecognizer.open(this)
         wordStore = WordMemoryStore.open(this)
-        inkModel = InkModel(INK_LANGUAGE) { state -> keyboard?.showModelState(state) }
+        activeSettings = settings.readBlocking()
+        useResolvedInkLanguage()
     }
 
     override fun onDestroy() {
         inkModel.close()
         super.onDestroy()
+    }
+
+    /** Swaps the recognizer when the resolved language changed, closing the one it replaces. */
+    private fun useResolvedInkLanguage() {
+        val tag = resolveInkLanguage(
+            activeSettings.handwriting,
+            AppLocales.effectiveTag(this),
+            AppLocales.systemTag(),
+            ::supportsInkLanguage,
+        )
+        if (::inkModel.isInitialized) {
+            if (inkModel.languageTag == tag) return
+            inkModel.close()
+        }
+        inkModel = InkModel(tag) { state -> keyboard?.showModelState(state) }
     }
 
     override fun onCreateInputView(): View {
@@ -150,6 +169,7 @@ class PenInputMethodService : InputMethodService() {
         super.onStartInputView(info, restarting)
         currentInputConnection?.finishComposingText()
         activeSettings = settings.readBlocking()
+        useResolvedInkLanguage()
         keyboard?.canvas?.configure(activeSettings.capture())
         keyboard?.showSuggestions(emptyList(), null)
         committed = null
@@ -168,6 +188,5 @@ class PenInputMethodService : InputMethodService() {
     private companion object {
         const val REJECT_WINDOW_MS = 3_000L
         const val PRE_CONTEXT = 20
-        const val INK_LANGUAGE = "en-US"
     }
 }

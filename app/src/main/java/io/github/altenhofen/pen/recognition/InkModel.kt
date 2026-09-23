@@ -19,12 +19,18 @@ sealed interface InkModelState {
     data class Unavailable(val reason: String) : InkModelState
 }
 
+/** True when ML Kit ships a Digital Ink model for [tag]. */
+internal fun supportsInkLanguage(tag: String): Boolean = inkModelIdentifier(tag) != null
+
+private fun inkModelIdentifier(tag: String): DigitalInkRecognitionModelIdentifier? =
+    runCatching { DigitalInkRecognitionModelIdentifier.fromLanguageTag(tag) }.getOrNull()
+
 /** Google ML Kit Digital Ink, downloaded once and then fully on-device. */
 internal class InkModel(
-    languageTag: String,
+    val languageTag: String,
     private val onState: (InkModelState) -> Unit,
 ) {
-    private val identifier = DigitalInkRecognitionModelIdentifier.fromLanguageTag(languageTag)
+    private val identifier = inkModelIdentifier(languageTag)
     private val model = identifier?.let { DigitalInkRecognitionModel.builder(it).build() }
     private val models = RemoteModelManager.getInstance()
     private var recognizer: DigitalInkRecognizer? = null
