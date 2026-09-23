@@ -30,7 +30,7 @@ class CalibrationSessionTest {
         }
         assertEquals(4, session.sampleCount)
         assertEquals('A', session.currentLabel)
-        assertEquals(CalibrationEvent.Recorded, session.advanceToNextLabel())
+        assertTrue(session.advanceToNextLabel() is CalibrationEvent.Advanced)
         assertEquals('B', session.currentLabel)
         assertEquals(0, session.sampleCount)
     }
@@ -39,41 +39,47 @@ class CalibrationSessionTest {
     fun lastNextIsReadyToCommit() {
         val session = CalibrationSession.begin(listOf('A', 'B'))
         session.recordInk(strokesFor('A'))
-        session.advanceToNextLabel()
+        assertTrue(session.advanceToNextLabel() is CalibrationEvent.Advanced)
         session.recordInk(strokesFor('B'))
-        assertEquals(CalibrationEvent.ReadyToCommit, session.advanceToNextLabel())
+        assertTrue(session.advanceToNextLabel() is CalibrationEvent.ReadyToCommit)
         assertEquals(null, session.currentLabel)
     }
 
     @Test
-    fun payloadKeepsOneClusterPerExperiment() {
-        val session = CalibrationSession.begin(listOf('A'))
+    fun eachNextCarriesOnlyThatLabelsSamples() {
+        val session = CalibrationSession.begin(listOf('A', 'B'))
         session.recordInk(strokesFor('A', jitter = 0.05f))
         session.recordInk(strokesFor('A', jitter = 0.12f))
-        session.advanceToNextLabel()
+        val event = session.advanceToNextLabel() as CalibrationEvent.Advanced
         assertEquals(
-            listOf("train:A:0", "train:A:1"),
-            session.payload().clusters.map { it.id.value },
+            listOf("train:A:${session.sessionId}:0", "train:A:${session.sessionId}:1"),
+            event.payload.clusters.map { it.id.value },
         )
     }
 
     @Test
-    fun secondCommitReplacesPriorExperiments() {
-        val first = CalibrationSession.begin(listOf('A'))
-        repeat(3) { first.recordInk(strokesFor('A', jitter = (it + 1) * 0.05f)) }
-        first.advanceToNextLabel()
+    fun heldPenWithoutMovementIsIgnored() {
+        val session = CalibrationSession.begin(listOf('A'))
+        val held = Stroke().apply { repeat(40) { append(500f, 1000f) } }
+        assertEquals(CalibrationEvent.Ignored, session.recordInk(listOf(held)))
+        assertEquals(0, session.sampleCount)
+    }
 
+    @Test
+    fun secondSessionAddsToPriorExperiments() {
         val dao = InMemoryPrototypeDao()
         val recognizer = AdaptiveRecognizer(PrototypeStore(dao))
-        recognizer.commitTraining(first.payload())
-        assertEquals(listOf("train:A:0", "train:A:1", "train:A:2"), dao.trainingIds())
+
+        val first = CalibrationSession.begin(listOf('A'))
+        repeat(3) { first.recordInk(strokesFor('A', jitter = (it + 1) * 0.05f)) }
+        recognizer.commitTraining((first.advanceToNextLabel() as CalibrationEvent.ReadyToCommit).payload)
 
         val second = CalibrationSession.begin(listOf('A'))
         second.recordInk(strokesFor('A', jitter = 0.2f))
-        second.advanceToNextLabel()
-        recognizer.commitTraining(second.payload())
-        assertEquals(listOf("train:A:0"), dao.trainingIds())
-        assertEquals(37, dao.all().size)
+        recognizer.commitTraining((second.advanceToNextLabel() as CalibrationEvent.ReadyToCommit).payload)
+
+        assertEquals(4, dao.trainingIds().size)
+        assertEquals(40, dao.all().size)
     }
 
     @Test
@@ -131,10 +137,5 @@ private class InMemoryPrototypeDao : PrototypeDao() {
 
     override fun deleteAll() {
         rows.clear()
-    }
-
-    override fun deleteMatching(exact: String, like: String) {
-        val prefix = like.removeSuffix("%")
-        rows.keys.filter { it == exact || it.startsWith(prefix) }.forEach { rows.remove(it) }
     }
 }

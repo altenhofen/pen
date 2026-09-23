@@ -20,7 +20,8 @@ internal class AdaptiveRecognizer(
     }
 
     fun feedback(result: RecognitionResult, feedback: Feedback) {
-        recognizer.replace(store.adapt(result.winner.clusterId, result.sample, feedback))
+        val updated = store.adapt(result.winner.clusterId, result.sample, feedback)
+        if (updated == null) reload() else recognizer.replace(updated)
     }
 
     fun commitTraining(payload: CalibrationPayload) {

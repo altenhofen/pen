@@ -54,12 +54,10 @@ internal class CalibrationMinigame {
         val active = session ?: return CalibrationEvent.Ignored
         if (complete) return CalibrationEvent.Ignored
         val event = active.advanceToNextLabel()
-        if (event == CalibrationEvent.ReadyToCommit) {
+        if (event is CalibrationEvent.ReadyToCommit) {
             trainedCount = active.labels.size
             complete = true
         }
         return event
     }
-
-    fun payload(): CalibrationPayload = requireNotNull(session).payload()
 }

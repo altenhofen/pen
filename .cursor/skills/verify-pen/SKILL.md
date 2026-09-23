@@ -35,7 +35,7 @@ Read-only. Exit `0` only when the serial is `emulator-5556`, `sys.boot_completed
 
 ## Drive
 
-Harness is `adb` on `emulator-5556`. Stable handles are the visible strings `Pen settings`, `Calibrate`, `Set as default keyboard`, `Export profile`, `Import profile`, `Select characters to train`, `Start`, `Now writing 0`, `pen-configuration.zip`, `Recent files`, and `pen ink`. There are no content descriptions or test tags. Drive against English `values/strings.xml`. `app_name` and `ime_name` are not translated.
+Harness is `adb` on `emulator-5556`. Stable handles are the visible strings `Pen settings`, `Calibrate`, `Set as default keyboard`, `Export profile`, `Import profile`, `Select characters to train`, `Start`, `Now writing 0`, `pen-configuration.zip`, and `pen ink`. There are no content descriptions or test tags. Drive against English `values/strings.xml`. `app_name` and `ime_name` are not translated.
 
 ```bash
 .cursor/skills/verify-pen/scripts/drive-settings.sh
@@ -49,7 +49,7 @@ Calibration is a second drive from the same activity.
 .cursor/skills/verify-pen/scripts/drive-calibration.sh
 ```
 
-Proof is the dump containing `text="Now writing 0"` after a tap on `Calibrate`, a tap on `0`, and a tap on `Start`, plus the screenshot.
+Proof is the dump containing `text="Now writing 0"` after a tap on `Calibrate`, a tap on `0`, a tap on `Start`, and a 3 second motionless press on the canvas with no pen crash in `logcat -b crash`, plus the screenshot.
 
 Default keyboard is a third drive from settings.
 
@@ -73,7 +73,7 @@ Profile import is a fifth drive from settings.
 .cursor/skills/verify-pen/scripts/drive-profile-import.sh
 ```
 
-Proof is the dump containing `text="Recent files"` after a tap on `Import profile`, plus the screenshot.
+Proof is the dump containing `package="com.google.android.documentsui"` after a tap on `Import profile`, plus the screenshot. The picker opens on the last folder used, so do not key on `Recent files`.
 
 The keyboard list is a sixth drive.
 
@@ -110,7 +110,7 @@ Kills the emulator pid stored in `/tmp/pen-verify/emulator.pid`, then `adb -s em
 | `scripts/launch.sh` | Boot `emulator-5556`, install the debug APK, start `MainActivity`, wait until `Pen settings` is in the hierarchy. |
 | `scripts/doctor.sh` | Check serial, boot, package, and `versionName=1.0`. |
 | `scripts/drive-settings.sh` | Relaunch `MainActivity` and write proof under `artifacts/settings/`. |
-| `scripts/drive-calibration.sh` | Open Calibrate, pick `0`, Start, and write proof under `artifacts/calibration/`. |
+| `scripts/drive-calibration.sh` | Open Calibrate, pick `0`, Start, hold the pen still for 3 seconds, and write proof under `artifacts/calibration/`. |
 | `scripts/drive-default-keyboard.sh` | Open system IME settings from `Set as default keyboard` and write proof under `artifacts/default-keyboard/`. |
 | `scripts/drive-profile-export.sh` | Open the save sheet from `Export profile` and write proof under `artifacts/profile-export/`. |
 | `scripts/drive-profile-import.sh` | Open the document picker from `Import profile` and write proof under `artifacts/profile-import/`. |
