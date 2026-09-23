@@ -1,5 +1,7 @@
 package io.github.altenhofen.pen.profile
 
+import io.github.altenhofen.pen.recognition.GestureAction
+import io.github.altenhofen.pen.recognition.GestureCluster
 import io.github.altenhofen.pen.recognition.ClusterId
 import io.github.altenhofen.pen.recognition.FEATURE_WIDTH
 import io.github.altenhofen.pen.recognition.FeatureVector
@@ -36,6 +38,10 @@ import kotlin.math.roundToInt
  *   varint zigzag(confirmedAt - previous confirmedAt)
  *   f32[FEATURE_WIDTH] per-channel scale
  *   i8[wordSampleCount * FEATURE_WIDTH] quantized values
+ * varint gestureCount
+ *   text  action id
+ *   text  cluster id
+ *   i8[sampleCount * FEATURE_WIDTH] quantized values
  * ```
  *
  * The sample counts ride along so a future change to either constant rejects old archives instead
@@ -76,6 +82,13 @@ internal object ProfileBinaryCodec {
             previousConfirmedAt = sample.confirmedAt
             writer.quantized(sample.vector)
         }
+
+        writer.varint(profile.gestures.size.toLong())
+        profile.gestures.forEach { cluster ->
+            writer.text(cluster.action.id)
+            writer.text(cluster.id.value)
+            writer.quantized(cluster.vector)
+        }
         return out.toByteArray()
     }
 
@@ -110,7 +123,18 @@ internal object ProfileBinaryCodec {
             previousConfirmedAt = confirmedAt
             WordSample(id, word, reader.quantized(WORD_SAMPLE_COUNT), confirmedAt)
         }
-        return PenProfile.create(settings, withRegeneratedSeeds(clusters), words)
+        val gestures = if (reader.hasRemaining()) {
+            val gestureCount = reader.count("gesture count", PenProfile.MAX_GESTURE_CLUSTERS)
+            List(gestureCount) {
+                val action = GestureAction.fromId(reader.text())
+                    ?: throw ProfileTransferException("unknown gesture action")
+                val id = ClusterId(reader.text())
+                GestureCluster(id, action, reader.quantized(SAMPLE_COUNT))
+            }
+        } else {
+            emptyList()
+        }
+        return PenProfile.create(settings, withRegeneratedSeeds(clusters), words, gestures)
     }
 
     private fun handwritingTag(stored: String): String? = stored.ifEmpty { null }
@@ -228,6 +252,8 @@ internal object ProfileBinaryCodec {
             cursor += length
             return slice
         }
+
+        fun hasRemaining(): Boolean = cursor < bytes.size
     }
 
     private fun zigzag(value: Long): Long = (value shl 1) xor (value shr 63)

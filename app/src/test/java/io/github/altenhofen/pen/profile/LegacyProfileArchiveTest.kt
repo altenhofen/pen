@@ -97,11 +97,12 @@ class LegacyProfileArchiveTest {
     }
 
     @Test
-    fun formatVersionThreeIsNotAPlainArchive() {
-        assertEquals(
-            "unsupported formatVersion 3",
-            failureOf { LegacyProfileArchive.decode(zipOf(profileJson(formatVersion = 3))) }.message,
-        )
+    fun versionThreeImportsGestureTraining() {
+        val vector = FloatArray(96) { 0.1f }.joinToString(",")
+        val gestures = """[{"id":"g1","actionId":"undo","vector":[$vector]}]"""
+        val decoded = LegacyProfileArchive.decode(zipOf(profileJson(formatVersion = 3, gestures = gestures)))
+        assertEquals(1, decoded.gestures.size)
+        assertEquals(io.github.altenhofen.pen.recognition.GestureAction.Undo, decoded.gestures.single().action)
     }
 
     @Test
@@ -149,12 +150,14 @@ class LegacyProfileArchiveTest {
         formatVersion: Int = 1,
         strokeWidth: String = "5.5",
         words: String = "[]",
+        gestures: String = "[]",
     ): ByteArray {
         val vector = FloatArray(96) { 0.1f }.joinToString(",")
         return """
             {"formatVersion":$formatVersion,
              "motor":{"settleMillis":900,"strokeWidthDp":$strokeWidth,"ambiguityThreshold":0.2},
              "words":$words,
+             "gestures":$gestures,
              "prototypes":[{"id":"seed:8","label":"8","vector":[$vector]}]}
         """.trimIndent().toByteArray(Charsets.UTF_8)
     }

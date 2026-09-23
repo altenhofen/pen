@@ -3,6 +3,9 @@ package io.github.altenhofen.pen.calibration
 import io.github.altenhofen.pen.ime.Stroke
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
 import io.github.altenhofen.pen.recognition.ClusterRow
+import io.github.altenhofen.pen.recognition.GestureClusterRow
+import io.github.altenhofen.pen.recognition.GestureDao
+import io.github.altenhofen.pen.recognition.GestureStore
 import io.github.altenhofen.pen.recognition.PrototypeDao
 import io.github.altenhofen.pen.recognition.PrototypeStore
 import io.github.altenhofen.pen.recognition.seedStrokes
@@ -68,7 +71,7 @@ class CalibrationSessionTest {
     @Test
     fun secondSessionAddsToPriorExperiments() {
         val dao = InMemoryPrototypeDao()
-        val recognizer = AdaptiveRecognizer(PrototypeStore(dao))
+        val recognizer = AdaptiveRecognizer(PrototypeStore(dao), GestureStore(InMemoryGestureDao()))
 
         val first = CalibrationSession.begin(listOf('A'))
         repeat(3) { first.recordInk(strokesFor('A', jitter = (it + 1) * 0.05f)) }
@@ -121,6 +124,20 @@ private fun offset(strokes: List<Stroke>, dx: Float): List<Stroke> =
             source.points().forEach { copy.append(it.x + dx, it.y) }
         }
     }
+
+private class InMemoryGestureDao : GestureDao() {
+    private val rows = LinkedHashMap<String, GestureClusterRow>()
+
+    override fun all(): List<GestureClusterRow> = rows.values.toList()
+
+    override fun upsert(rows: List<GestureClusterRow>) {
+        rows.forEach { this.rows[it.clusterId] = it }
+    }
+
+    override fun deleteAll() {
+        rows.clear()
+    }
+}
 
 private class InMemoryPrototypeDao : PrototypeDao() {
     private val rows = LinkedHashMap<String, ClusterRow>()

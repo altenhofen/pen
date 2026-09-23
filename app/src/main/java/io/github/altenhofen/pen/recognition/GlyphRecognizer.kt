@@ -34,7 +34,7 @@ internal class GlyphRecognizer(private val metric: DistanceMetric = DistanceMetr
         return RecognitionResult(winner, ranked, Ambiguity(gap, threshold, gap < threshold), sample)
     }
 
-    private companion object {
+    internal companion object {
         /** Averaging a few nearest clusters stops heavily trained labels from winning by sheer count. */
         const val NEAREST_PER_LABEL = 3
     }

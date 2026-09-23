@@ -8,6 +8,8 @@ value class ClusterId(val value: String) {
         fun seed(label: Char) = ClusterId("seed:$label")
         fun legacy(label: Char) = ClusterId("legacy:$label")
         fun training(label: Char, sessionId: String, index: Int) = ClusterId("train:$label:$sessionId:$index")
+        fun trainingGesture(actionId: String, sessionId: String, index: Int) =
+            ClusterId("train-gesture:$actionId:$sessionId:$index")
     }
 }
 

@@ -82,10 +82,11 @@ internal abstract class WordSampleDao {
     }
 }
 
-@Database(entities = [ClusterRow::class, WordSampleRow::class], version = 3, exportSchema = false)
+@Database(entities = [ClusterRow::class, WordSampleRow::class, GestureClusterRow::class], version = 4, exportSchema = false)
 internal abstract class PrototypeDatabase : RoomDatabase() {
     abstract fun prototypes(): PrototypeDao
     abstract fun words(): WordSampleDao
+    abstract fun gestures(): GestureDao
 
     companion object {
         @Volatile
@@ -98,9 +99,18 @@ internal abstract class PrototypeDatabase : RoomDatabase() {
                     context.applicationContext,
                     PrototypeDatabase::class.java,
                     "prototypes.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).allowMainThreadQueries().build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).allowMainThreadQueries().build().also { instance = it }
             }
         }
+    }
+}
+
+internal val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS gesture_clusters (" +
+                "cluster_id TEXT NOT NULL, action_id TEXT NOT NULL, packed BLOB NOT NULL, PRIMARY KEY(cluster_id))",
+        )
     }
 }
 
@@ -184,14 +194,14 @@ internal class WordMemoryStore(private val dao: WordSampleDao) {
     }
 }
 
-private fun FeatureVector.pack(): ByteArray {
+internal fun FeatureVector.pack(): ByteArray {
     val values = copyValues()
     val buffer = ByteBuffer.allocate(values.size * Float.SIZE_BYTES).order(ByteOrder.LITTLE_ENDIAN)
     values.forEach { buffer.putFloat(it) }
     return buffer.array()
 }
 
-private fun unpack(packed: ByteArray): FloatArray {
+internal fun unpack(packed: ByteArray): FloatArray {
     val buffer = ByteBuffer.wrap(packed).order(ByteOrder.LITTLE_ENDIAN)
     return FloatArray(packed.size / Float.SIZE_BYTES) { buffer.float }
 }

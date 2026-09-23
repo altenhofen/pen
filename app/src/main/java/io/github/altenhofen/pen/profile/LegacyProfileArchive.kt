@@ -1,6 +1,9 @@
 package io.github.altenhofen.pen.profile
 
+import io.github.altenhofen.pen.recognition.GestureAction
+import io.github.altenhofen.pen.recognition.GestureCluster
 import io.github.altenhofen.pen.recognition.ClusterId
+import io.github.altenhofen.pen.recognition.SAMPLE_COUNT
 import io.github.altenhofen.pen.recognition.FeatureVector
 import io.github.altenhofen.pen.recognition.PrototypeCluster
 import io.github.altenhofen.pen.recognition.WORD_SAMPLE_COUNT
@@ -21,7 +24,7 @@ import java.util.zip.ZipInputStream
  */
 internal object LegacyProfileArchive {
     const val ENTRY_NAME = "profile.json"
-    private val READABLE_VERSIONS = 1..2
+    private val READABLE_VERSIONS = 1..3
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -45,6 +48,7 @@ internal object LegacyProfileArchive {
                 ),
                 wire.prototypes.map { it.toCluster() },
                 wire.words.map { it.toSample() },
+                wire.gestures.map { it.toCluster() },
             )
         } catch (error: ProfileTransferException) {
             throw error
@@ -78,6 +82,11 @@ internal object LegacyProfileArchive {
         if (label.length != 1) throw ProfileTransferException("label must be a single character")
         return PrototypeCluster(ClusterId(id), label.single(), FeatureVector.from(vector.toFloatArray()))
     }
+
+    private fun GestureWire.toCluster(): GestureCluster {
+        val action = GestureAction.fromId(actionId) ?: throw ProfileTransferException("unknown gesture $actionId")
+        return GestureCluster(ClusterId(id), action, FeatureVector.from(vector.toFloatArray(), SAMPLE_COUNT))
+    }
 }
 
 @Serializable
@@ -86,6 +95,7 @@ private data class ProfileWire(
     val motor: MotorWire,
     val prototypes: List<PrototypeWire>,
     val words: List<WordWire> = emptyList(),
+    val gestures: List<GestureWire> = emptyList(),
 )
 
 @Serializable
@@ -110,4 +120,11 @@ private data class WordWire(
     val word: String,
     val vector: List<Float>,
     val confirmedAt: Long,
+)
+
+@Serializable
+private data class GestureWire(
+    val id: String,
+    val actionId: String,
+    val vector: List<Float>,
 )

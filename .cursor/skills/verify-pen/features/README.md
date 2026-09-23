@@ -22,7 +22,7 @@ This directory is the maintained source for verifying the user-facing behavior o
 
 - Capture the user action and the resulting state, not only the final screen.
 - UI proof includes a UI hierarchy dump and a screenshot.
-- Record the feature ID (`settings`, `calibration`, `default-keyboard`, `profile-export`, `profile-import`, or `ink-keyboard`) with every artifact.
+- Record the feature ID (`settings`, `calibration`, `gestures`, `default-keyboard`, `profile-export`, `profile-import`, or `ink-keyboard`) with every artifact.
 - Report an unreachable path with the attempted command and the unmet precondition.
 - Do not report a skipped entry point as verified through a different path.
 
@@ -39,6 +39,7 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 
 - [Settings](./settings.md) covers the launcher activity, the three motor sliders, the `Finger and passive pen` switch, `Calibrate`, `Set as default keyboard`, `Export profile`, and `Import profile`.
 - [Calibration](./calibration.md) covers the glyph picker and writing canvas behind `Calibrate`.
+- [Gestures](./gestures.md) covers the `Gestures` tab and action picker inside `Calibrate`.
 - [Default keyboard](./default-keyboard.md) covers the settings button that opens system input-method settings.
 - [Profile export](./profile-export.md) covers the save sheet opened from `Export profile`.
 - [Profile import](./profile-import.md) covers the open-document picker opened from `Import profile`.

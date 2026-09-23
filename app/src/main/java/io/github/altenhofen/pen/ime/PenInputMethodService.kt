@@ -6,6 +6,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
+import io.github.altenhofen.pen.recognition.GestureMatchPolicy
 import io.github.altenhofen.pen.recognition.GlyphTemplateSource
 import io.github.altenhofen.pen.recognition.InkModel
 import io.github.altenhofen.pen.recognition.InkModelSource
@@ -32,6 +33,8 @@ class PenInputMethodService : InputMethodService() {
     private var activeSettings: MotorSettings = MotorSettings.Default
     private var keyboard: InkKeyboardView? = null
     private val pending = PendingCommit()
+    private val gestureUndo = GestureUndoStack()
+    private lateinit var gestureExecutor: GestureExecutor
     private var learning = LearningPolicy.Private
     private var pendingAt: Long = 0L
     private var committed: String? = null
@@ -41,6 +44,7 @@ class PenInputMethodService : InputMethodService() {
         super.onCreate()
         settings = MotorSettingsStore.open(this)
         recognizer = AdaptiveRecognizer.open(this)
+        gestureExecutor = GestureExecutor(this, gestureUndo)
         wordStore = WordMemoryStore.open(this)
         activeSettings = settings.readBlocking()
         useResolvedInkLanguage()
@@ -88,7 +92,19 @@ class PenInputMethodService : InputMethodService() {
     }
 
     private fun onGlyph(strokes: List<Stroke>) {
-        val template = recognizer.recognize(strokes, activeSettings.ambiguityThreshold)
+        val threshold = activeSettings.ambiguityThreshold
+        val gesture = recognizer.recognizeGesture(strokes, threshold)
+        val template = recognizer.recognize(strokes, threshold)
+        if (GestureMatchPolicy.shouldFire(gesture, template, threshold)) {
+            val connection = currentInputConnection
+            if (connection != null && gestureExecutor.perform(gesture!!.winner.action, connection)) {
+                resolve(pending.corrected())
+                committed = null
+                pendingAt = 0L
+                keyboard?.showSuggestions(emptyList(), null)
+                return
+            }
+        }
         val shape = wordFeatures(strokes)
         val recalls = shape?.let(words::recall).orEmpty()
         val generation = ++glyphGeneration

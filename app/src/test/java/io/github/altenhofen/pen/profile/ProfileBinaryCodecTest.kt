@@ -1,6 +1,8 @@
 package io.github.altenhofen.pen.profile
 
 import io.github.altenhofen.pen.recognition.ClusterId
+import io.github.altenhofen.pen.recognition.GestureAction
+import io.github.altenhofen.pen.recognition.GestureCluster
 import io.github.altenhofen.pen.recognition.FeatureVector
 import io.github.altenhofen.pen.recognition.GlyphRecognizer
 import io.github.altenhofen.pen.recognition.PrototypeCluster
@@ -41,6 +43,20 @@ class ProfileBinaryCodecTest {
         val tuned = MotorSettings.Default.withHandwriting(HandwritingLanguage.Explicit(InkLanguage.Portuguese))
         val decoded = roundTrip(profileOf(settings = tuned))
         assertEquals(HandwritingLanguage.Explicit(InkLanguage.Portuguese), decoded.settings.handwriting)
+    }
+
+    @Test
+    fun roundTripKeepsGestureTraining() {
+        val gestures = List(GestureAction.MIN_TRAINING_SAMPLES) { index ->
+            GestureCluster(
+                ClusterId("train-gesture:undo:s1:$index"),
+                GestureAction.Undo,
+                FeatureVector.from(FloatArray(96) { it * 0.01f }),
+            )
+        }
+        val decoded = roundTrip(profileOf(gestures = gestures))
+        assertEquals(GestureAction.Undo, decoded.gestures.first().action)
+        assertEquals(GestureAction.MIN_TRAINING_SAMPLES, decoded.gestures.size)
     }
 
     @Test
@@ -169,7 +185,8 @@ class ProfileBinaryCodecTest {
         settings: MotorSettings = MotorSettings.Default,
         clusters: List<PrototypeCluster> = listOf(cluster("train:8:session:0", '8', 0.1f)),
         words: List<WordSample> = emptyList(),
-    ) = PenProfile.create(settings, clusters, words)
+        gestures: List<GestureCluster> = emptyList(),
+    ) = PenProfile.create(settings, clusters, words, gestures)
 
     private fun cluster(id: String, label: Char, magnitude: Float) = PrototypeCluster(
         ClusterId(id),

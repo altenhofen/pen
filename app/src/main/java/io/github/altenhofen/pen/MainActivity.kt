@@ -26,6 +26,7 @@ import io.github.altenhofen.pen.profile.ProfileFailure
 import io.github.altenhofen.pen.profile.ProfileTransfer
 import io.github.altenhofen.pen.profile.ProfileTransferException
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
+import io.github.altenhofen.pen.recognition.GestureStore
 import io.github.altenhofen.pen.recognition.PrototypeStore
 import io.github.altenhofen.pen.recognition.WordMemoryStore
 import io.github.altenhofen.pen.settings.AppLocales
@@ -61,6 +62,7 @@ class MainActivity : AppCompatActivity() {
             settingsStore,
             PrototypeStore.open(applicationContext),
             WordMemoryStore.open(applicationContext),
+            GestureStore.open(applicationContext),
             contentResolver,
         )
     }
