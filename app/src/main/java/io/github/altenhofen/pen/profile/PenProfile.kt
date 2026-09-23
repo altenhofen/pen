@@ -26,4 +26,11 @@ internal class PenProfile private constructor(
     }
 }
 
-internal class ProfileTransferException(message: String, cause: Throwable? = null) : IllegalArgumentException(message, cause)
+/** Why a transfer stopped, so the launcher can say "wrong passphrase" instead of "import failed". */
+internal enum class ProfileFailure { Passphrase, Malformed }
+
+internal class ProfileTransferException(
+    message: String,
+    cause: Throwable? = null,
+    val failure: ProfileFailure = ProfileFailure.Malformed,
+) : IllegalArgumentException(message, cause)

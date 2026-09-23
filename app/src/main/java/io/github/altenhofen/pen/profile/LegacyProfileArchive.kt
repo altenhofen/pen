@@ -9,45 +9,27 @@ import io.github.altenhofen.pen.settings.MotorSettings
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import java.io.ByteArrayInputStream
 import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
-import java.util.zip.ZipEntry
 import java.util.zip.ZipException
 import java.util.zip.ZipInputStream
-import java.util.zip.ZipOutputStream
 
-internal object ProfileArchiveCodec {
+/**
+ * Reads the unencrypted zip-of-JSON archives that versions 1 and 2 wrote. Nothing writes this
+ * format any more, so profiles already on a user's disk keep importing and nothing new lands
+ * outside the encrypted [ProfileVault].
+ */
+internal object LegacyProfileArchive {
     const val ENTRY_NAME = "profile.json"
-    const val FORMAT_VERSION = 2
-    private val READABLE_VERSIONS = 1..FORMAT_VERSION
+    private val READABLE_VERSIONS = 1..2
 
     private val json = Json {
         ignoreUnknownKeys = true
         allowSpecialFloatingPointValues = true
     }
 
-    fun encode(output: OutputStream, profile: PenProfile) {
-        val payload = json.encodeToString(ProfileWire.serializer(), profile.toWire())
-            .toByteArray(Charsets.UTF_8)
-        ZipOutputStream(output).use { zip ->
-            zip.putNextEntry(ZipEntry(ENTRY_NAME))
-            zip.write(payload)
-            zip.closeEntry()
-        }
-    }
-
-    fun decode(input: InputStream): PenProfile {
-        val zip = ZipInputStream(input)
-        var jsonBytes: ByteArray? = null
-        while (true) {
-            val entry = zip.nextEntry ?: break
-            if (entry.name == ENTRY_NAME) {
-                jsonBytes = zip.readBytes()
-            }
-            zip.closeEntry()
-        }
-        val bytes = jsonBytes ?: throw ProfileTransferException("missing $ENTRY_NAME")
+    fun decode(archive: ByteArray): PenProfile {
+        val bytes = readEntry(archive) ?: throw ProfileTransferException("missing $ENTRY_NAME")
         return try {
             val wire = json.decodeFromString(ProfileWire.serializer(), bytes.toString(Charsets.UTF_8))
             if (wire.formatVersion !in READABLE_VERSIONS) {
@@ -69,30 +51,24 @@ internal object ProfileArchiveCodec {
             throw ProfileTransferException(error.message ?: "invalid archive", error)
         } catch (error: SerializationException) {
             throw ProfileTransferException("invalid archive", error)
-        } catch (error: ZipException) {
-            throw ProfileTransferException("invalid archive", error)
-        } catch (error: IOException) {
-            throw ProfileTransferException("invalid archive", error)
         }
     }
 
-    private fun PenProfile.toWire() = ProfileWire(
-        formatVersion = FORMAT_VERSION,
-        motor = MotorWire(
-            settings.settleMillis,
-            settings.strokeWidthDp,
-            settings.ambiguityThreshold,
-            settings.allowFingerInput,
-        ),
-        prototypes = prototypes.map { cluster ->
-            PrototypeWire(
-                id = cluster.id.value,
-                label = cluster.label.toString(),
-                vector = cluster.vector.copyValues().toList(),
-            )
-        },
-        words = words.map { WordWire(it.id, it.word, it.vector.copyValues().toList(), it.confirmedAt) },
-    )
+    private fun readEntry(archive: ByteArray): ByteArray? = try {
+        ZipInputStream(ByteArrayInputStream(archive)).use { zip ->
+            var payload: ByteArray? = null
+            while (true) {
+                val entry = zip.nextEntry ?: break
+                if (entry.name == ENTRY_NAME) payload = zip.readBytes()
+                zip.closeEntry()
+            }
+            payload
+        }
+    } catch (error: ZipException) {
+        throw ProfileTransferException("invalid archive", error)
+    } catch (error: IOException) {
+        throw ProfileTransferException("invalid archive", error)
+    }
 
     private fun WordWire.toSample() =
         WordSample(id, word, FeatureVector.from(vector.toFloatArray(), WORD_SAMPLE_COUNT), confirmedAt)

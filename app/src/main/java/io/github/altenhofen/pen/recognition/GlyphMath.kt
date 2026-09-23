@@ -19,8 +19,10 @@ internal class FeatureVector private constructor(private val values: FloatArray)
 
     companion object {
         fun from(values: FloatArray, sampleCount: Int = SAMPLE_COUNT): FeatureVector {
-            require(values.size == sampleCount * FEATURE_WIDTH)
-            require(values.all { it.isFinite() })
+            require(values.size == sampleCount * FEATURE_WIDTH) {
+                "vector must have ${sampleCount * FEATURE_WIDTH} values, got ${values.size}"
+            }
+            require(values.all { it.isFinite() }) { "vector values must be finite" }
             return FeatureVector(values.copyOf())
         }
     }

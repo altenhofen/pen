@@ -23,16 +23,26 @@ import io.github.altenhofen.pen.settings.MotorSettings
 import kotlin.math.roundToLong
 
 @Composable
-fun SettingsScreen(
+internal fun SettingsScreen(
     current: MotorSettings,
     onUpdate: ((MotorSettings) -> MotorSettings) -> Unit,
     onCalibrate: () -> Unit,
     onSetDefaultKeyboard: () -> Unit,
     onExport: () -> Unit,
     onImport: () -> Unit,
+    passphraseRequest: PassphraseRequest? = null,
+    onPassphrase: (PassphraseRequest, CharArray) -> Unit = { _, _ -> },
+    onPassphraseCancelled: () -> Unit = {},
     status: String? = null,
     modifier: Modifier = Modifier,
 ) {
+    if (passphraseRequest != null) {
+        PassphraseDialog(
+            request = passphraseRequest,
+            onSubmit = { passphrase -> onPassphrase(passphraseRequest, passphrase) },
+            onDismiss = onPassphraseCancelled,
+        )
+    }
     Column(modifier = modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineSmall)
         SettingSlider(
