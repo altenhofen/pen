@@ -10,30 +10,38 @@ internal const val FEATURE_WIDTH = 3
 internal data class Point2(val x: Float, val y: Float)
 
 internal class FeatureVector private constructor(private val values: FloatArray) {
+    val sampleCount: Int get() = values.size / FEATURE_WIDTH
+
     operator fun get(pointIndex: Int, componentIndex: Int): Float =
         values[pointIndex * FEATURE_WIDTH + componentIndex]
 
     fun copyValues(): FloatArray = values.copyOf()
 
     companion object {
-        fun from(values: FloatArray): FeatureVector {
-            require(values.size == SAMPLE_COUNT * FEATURE_WIDTH)
+        fun from(values: FloatArray, sampleCount: Int = SAMPLE_COUNT): FeatureVector {
+            require(values.size == sampleCount * FEATURE_WIDTH)
             require(values.all { it.isFinite() })
             return FeatureVector(values.copyOf())
         }
     }
 }
 
-internal fun preprocessPolylines(strokes: List<List<Point2>>): FeatureVector? {
+internal enum class Encoding { Deltas, Positions }
+
+internal fun preprocessPolylines(
+    strokes: List<List<Point2>>,
+    sampleCount: Int = SAMPLE_COUNT,
+    encoding: Encoding = Encoding.Deltas,
+): FeatureVector? {
     val cleaned = strokes.map { dropAdjacentDuplicates(it) }.filter { it.isNotEmpty() }
     if (cleaned.isEmpty()) return null
     if (cleaned.any { stroke -> stroke.any { !it.x.isFinite() || !it.y.isFinite() } }) return null
     val normalized = normalizeAspect(cleaned)
-    val counts = allocateSampleCounts(normalized) ?: return null
+    val counts = allocateSampleCounts(normalized, sampleCount) ?: return null
     val sampled = normalized.mapIndexed { index, stroke ->
         resampleEquidistant(stroke, counts[index])
     }
-    return vectorize(sampled)
+    return vectorize(sampled, sampleCount, encoding)
 }
 
 private fun dropAdjacentDuplicates(points: List<Point2>): List<Point2> {
@@ -74,12 +82,12 @@ private fun normalizeAspect(strokes: List<List<Point2>>): List<List<Point2>> {
     }
 }
 
-private fun allocateSampleCounts(strokes: List<List<Point2>>): IntArray? {
+private fun allocateSampleCounts(strokes: List<List<Point2>>, sampleCount: Int): IntArray? {
     val lengths = FloatArray(strokes.size) { arcLength(strokes[it]) }
     val counts = IntArray(strokes.size) { index -> if (lengths[index] == 0f) 1 else 2 }
     val minimum = counts.sum()
-    if (minimum > SAMPLE_COUNT) return null
-    var remaining = SAMPLE_COUNT - minimum
+    if (minimum > sampleCount) return null
+    var remaining = sampleCount - minimum
     val ink = lengths.sum()
     if (ink == 0f) return null
     if (remaining == 0) return counts
@@ -132,25 +140,29 @@ internal fun resampleEquidistant(points: List<Point2>, count: Int): List<Point2>
     }
 }
 
-private fun vectorize(strokes: List<List<Point2>>): FeatureVector {
-    val values = FloatArray(SAMPLE_COUNT * FEATURE_WIDTH)
+private fun vectorize(strokes: List<List<Point2>>, sampleCount: Int, encoding: Encoding): FeatureVector {
+    val values = FloatArray(sampleCount * FEATURE_WIDTH)
     var slot = 0
     for (stroke in strokes) {
         for ((index, point) in stroke.withIndex()) {
-            val previous = if (index == 0) null else stroke[index - 1]
-            values[slot * FEATURE_WIDTH] = if (previous == null) 0f else point.x - previous.x
-            values[slot * FEATURE_WIDTH + 1] = if (previous == null) 0f else point.y - previous.y
+            val origin = when (encoding) {
+                Encoding.Deltas -> if (index == 0) point else stroke[index - 1]
+                Encoding.Positions -> Point2(0f, 0f)
+            }
+            values[slot * FEATURE_WIDTH] = point.x - origin.x
+            values[slot * FEATURE_WIDTH + 1] = point.y - origin.y
             values[slot * FEATURE_WIDTH + 2] = if (index == 0) 1f else 0f
             slot++
         }
     }
-    check(slot == SAMPLE_COUNT)
-    return FeatureVector.from(values)
+    check(slot == sampleCount)
+    return FeatureVector.from(values, sampleCount)
 }
 
 internal fun meanEuclidean(left: FeatureVector, right: FeatureVector): Float {
+    require(left.sampleCount == right.sampleCount)
     var sum = 0f
-    for (step in 0 until SAMPLE_COUNT) {
+    for (step in 0 until left.sampleCount) {
         var local = 0f
         for (component in 0 until FEATURE_WIDTH) {
             val delta = left[step, component] - right[step, component]
@@ -158,23 +170,25 @@ internal fun meanEuclidean(left: FeatureVector, right: FeatureVector): Float {
         }
         sum += kotlin.math.sqrt(local)
     }
-    return sum / SAMPLE_COUNT
+    return sum / left.sampleCount
 }
 
 internal fun bandedDtw(left: FeatureVector, right: FeatureVector, window: Int = 8): Float {
+    require(left.sampleCount == right.sampleCount)
+    val n = left.sampleCount
     val infinity = Float.POSITIVE_INFINITY
-    var previous = FloatArray(SAMPLE_COUNT) { infinity }
-    var current = FloatArray(SAMPLE_COUNT) { infinity }
-    var previousLength = IntArray(SAMPLE_COUNT)
-    var currentLength = IntArray(SAMPLE_COUNT)
-    for (i in 0 until SAMPLE_COUNT) {
+    var previous = FloatArray(n) { infinity }
+    var current = FloatArray(n) { infinity }
+    var previousLength = IntArray(n)
+    var currentLength = IntArray(n)
+    for (i in 0 until n) {
         val start = max(0, i - window)
-        val end = min(SAMPLE_COUNT - 1, i + window)
+        val end = min(n - 1, i + window)
         for (j in start..end) {
             val cost = localCost(left, i, right, j)
             var best = infinity
             var bestLength = 0
-            if (i > 0 && j >= max(0, (i - 1) - window) && j <= min(SAMPLE_COUNT - 1, (i - 1) + window)) {
+            if (i > 0 && j >= max(0, (i - 1) - window) && j <= min(n - 1, (i - 1) + window)) {
                 val candidate = previous[j]
                 if (candidate < best) {
                     best = candidate
@@ -191,7 +205,7 @@ internal fun bandedDtw(left: FeatureVector, right: FeatureVector, window: Int = 
             if (i > 0 && j > 0) {
                 val diagonalColumn = j - 1
                 val diagonalRowStart = max(0, (i - 1) - window)
-                val diagonalRowEnd = min(SAMPLE_COUNT - 1, (i - 1) + window)
+                val diagonalRowEnd = min(n - 1, (i - 1) + window)
                 if (diagonalColumn in diagonalRowStart..diagonalRowEnd) {
                     val candidate = previous[diagonalColumn]
                     if (candidate < best) {
@@ -216,8 +230,8 @@ internal fun bandedDtw(left: FeatureVector, right: FeatureVector, window: Int = 
         previousLength = currentLength
         currentLength = swapLength
     }
-    val total = previous[SAMPLE_COUNT - 1]
-    val length = previousLength[SAMPLE_COUNT - 1]
+    val total = previous[n - 1]
+    val length = previousLength[n - 1]
     if (!total.isFinite() || length == 0) return infinity
     return total / length
 }
