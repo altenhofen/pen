@@ -15,6 +15,7 @@ boot="$(adb -s "$SERIAL" shell getprop sys.boot_completed | tr -d '\r')"
   exit 1
 }
 adb -s "$SERIAL" shell pm path io.github.altenhofen.pen >/dev/null
+adb -s "$SERIAL" shell cmd locale set-app-locales io.github.altenhofen.pen en >/dev/null 2>&1 || true
 dump="$(adb -s "$SERIAL" shell dumpsys package io.github.altenhofen.pen | tr -d '\r')"
 version=""
 if [[ "$dump" =~ versionName=([^[:space:]]+) ]]; then
