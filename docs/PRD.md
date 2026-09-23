@@ -188,10 +188,13 @@ $$\mathbf{p}_t \leftarrow \mathbf{p}_t + \alpha \cdot (\mathbf{s} - \mathbf{p}_t
 * Add user-configurable settings: Settle Window slider ($300\text{ ms} - 1200\text{ ms}$), Stroke Width, and Ambiguity Threshold.
 * Add manual calibration screen allowing the user to explicitly draw problematic characters (e.g., 5 samples of `9` vs `8`) to seed distinct prototype clusters.
 
-### Phase 5: fine tuning based on characters
+### Phase 5: fine-tuning based on characters
+* the app itself should have an option where user should be able to input their own typing (drawing) of all characters from A-z 0-9
+* This will help previous phases identify, users can have many sample for each letter/number.
 
 ### Phase 6: data and configuration export
-
+Create a configuration format that englobes all the calibration settings and fine-tuning drawings,
+maybe some sort of zip-file... 
 ---
 
 ## 7. Verification & Success Metrics
