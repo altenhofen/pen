@@ -27,6 +27,7 @@ class DrawingCanvasView(
     private val finished = ArrayList<Stroke>()
     private var active: Stroke? = null
     private val inkPath = Path()
+    private val pendingInkPath = Path()
     private val activePath = Path()
     private var settledListener: OnGlyphSettledListener? = null
     private val settleHandler = Handler(Looper.getMainLooper())
@@ -85,7 +86,7 @@ class DrawingCanvasView(
     fun cancelPendingGlyph() {
         settleHandler.removeCallbacks(settleRunnable)
         settleHandler.removeCallbacks(flushPendingTapRunnable)
-        pendingTapStroke = null
+        discardPendingTap()
         clearInk()
     }
 
@@ -94,16 +95,21 @@ class DrawingCanvasView(
         val stroke = pendingTapStroke ?: return
         val tool = pendingTapTool
         pendingTapStroke = null
-        if (!mayInkPointer(tool)) return
+        pendingInkPath.reset()
+        if (!mayInkPointer(tool)) {
+            invalidate()
+            return
+        }
         finished.add(stroke)
         appendStroke(inkPath, stroke)
         if (autoSettle) scheduleSettle()
         invalidate()
     }
 
-    private fun clearPendingTap() {
+    private fun discardPendingTap() {
         settleHandler.removeCallbacks(flushPendingTapRunnable)
         pendingTapStroke = null
+        pendingInkPath.reset()
     }
 
     fun takeInk(): List<Stroke> {
@@ -119,12 +125,14 @@ class DrawingCanvasView(
         active = null
         finished.clear()
         inkPath.reset()
+        pendingInkPath.reset()
         activePath.reset()
         invalidate()
     }
 
     override fun onDetachedFromWindow() {
         settleHandler.removeCallbacks(settleRunnable)
+        settleHandler.removeCallbacks(flushPendingTapRunnable)
         super.onDetachedFromWindow()
     }
 
@@ -210,18 +218,20 @@ class DrawingCanvasView(
                     active = null
                     activePath.reset()
                     if (detector.onTap(event.x, event.y)) {
-                        clearPendingTap()
+                        discardPendingTap()
                         invalidate()
                         return true
                     }
                     pendingTapStroke = stroke
                     pendingTapTool = activeToolType
                     pendingTapAt = SystemClock.uptimeMillis()
+                    pendingInkPath.reset()
+                    appendStroke(pendingInkPath, stroke)
                     settleHandler.postDelayed(flushPendingTapRunnable, doubleTapTimeoutMs.toLong())
                     invalidate()
                     return true
                 }
-                clearPendingTap()
+                flushPendingTap()
                 if (!mayInkPointer(activeToolType)) {
                     doubleTapDetector?.cancel()
                     active = null
@@ -257,6 +267,7 @@ class DrawingCanvasView(
             canvas.drawText(label, width / 2f, y, promptPaint)
         }
         canvas.drawPath(inkPath, ink)
+        canvas.drawPath(pendingInkPath, ink)
         canvas.drawPath(activePath, ink)
     }
 
