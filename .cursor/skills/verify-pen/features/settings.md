@@ -1,11 +1,11 @@
 # Settings
 
-Settings is the first screen after the user opens pen. It shows the heading `Pen settings`, toggles for `Add space after full word` and `Recognize spaces in handwriting`, sliders for settle window and stroke width, switches for `Finger and passive pen` and `Double-tap for space`, a `My words` button, a `Gestures` button, a `Calibrate` button, a `Set as default keyboard` button, an `Export profile` button, and an `Import profile` button.
+Settings is the first screen after the user opens pen. Under the heading `Pen settings`, outlined cards run in this order. The first card holds `Calibrate` and `Set as default keyboard`. The second holds `My words` and `Gestures`. The third holds `Add space after full word`, `Recognize spaces in handwriting`, the settle and stroke sliders, `Finger and passive pen`, and `Double-tap for space`. Language pickers sit in the next card. `Export profile` and `Import profile` are outlined buttons in the last card, below the fold on a phone.
 
 ## Sub-features
 
 - `settings-launch` shows `Pen settings` after the user opens the app from the launcher.
-- `settings-toggles` shows `Add space after full word` and `Recognize spaces in handwriting` at the top of the screen.
+- `settings-toggles` shows `Add space after full word` and `Recognize spaces in handwriting` in the motor card, under the action cards.
 - `settings-sliders` shows `Settle window` and `Stroke width` on that same screen.
 - `settings-finger-input` shows the `Finger and passive pen` switch (off by default on a fresh install).
 - `settings-double-tap-space` shows the `Double-tap for space` switch (on by default on a fresh install).
@@ -38,3 +38,4 @@ Preconditions:
 
 - Slider labels include the live value, so match the full `Settle window: 600 ms` string on a default install, or grep `Settle window`.
 - The ambiguity threshold slider was removed; do not grep for it.
+- `Export profile` and `Import profile` sit below the fold. Swipe the settings list before grepping those labels.
