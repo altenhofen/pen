@@ -33,6 +33,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import io.github.altenhofen.pen.R
 import io.github.altenhofen.pen.calibration.CalibrateGlyphs
 import io.github.altenhofen.pen.calibration.CalibrationEvent
+import io.github.altenhofen.pen.calibration.CalibrationPayload
 import io.github.altenhofen.pen.calibration.CalibrationMinigame
 import io.github.altenhofen.pen.calibration.GlyphCalibrationPhase
 import io.github.altenhofen.pen.calibration.SelectedGlyphs
@@ -85,7 +86,17 @@ private fun GlyphCalibrationFlow(
             sessionKey = phase.session.currentLabel,
             capture = capture,
             canAdvance = phase.session.canAdvance,
-            onSettled = { strokes -> act { recordInk(strokes) } },
+            onSettled = { strokes ->
+                var payload: CalibrationPayload? = null
+                act {
+                    if (recordInk(strokes) is CalibrationEvent.Recorded) {
+                        payload = payloadForCurrentLabel()
+                    }
+                }
+                payload?.let { p ->
+                    scope.launch(Dispatchers.IO + NonCancellable) { recognizer.commitTraining(p) }
+                }
+            },
             onNext = { leftover ->
                 act {
                     recordInk(leftover)
@@ -195,7 +206,6 @@ internal fun InkWritingPanel(
                         context,
                         acceptsTool = StylusGate::acceptsTraining,
                         autoSettle = true,
-                        keepInkAfterSettle = true,
                     ).also { canvas = it }.apply {
                         setOnGlyphSettledListener { strokes -> settled(strokes) }
                     }

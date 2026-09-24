@@ -13,6 +13,10 @@ internal class AdaptiveRecognizer(
     private val recognizer = GlyphRecognizer(metric)
     private val gestureRecognizer = GestureRecognizer(metric)
 
+    init {
+        reload()
+    }
+
     fun reload() {
         recognizer.replaceAll(store.loadOrSeed())
         gestureRecognizer.replaceAll(gestureStore.load())

@@ -26,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.altenhofen.pen.R
 import io.github.altenhofen.pen.calibration.GestureCalibrationEvent
+import io.github.altenhofen.pen.calibration.GestureCalibrationPayload
 import io.github.altenhofen.pen.calibration.GestureCalibrationMinigame
 import io.github.altenhofen.pen.calibration.GestureCalibrationPhase
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
@@ -82,7 +83,17 @@ internal fun GestureCalibrationScreen(
             sessionKey = phase.session.currentAction,
             capture = capture,
             canAdvance = phase.session.canAdvance,
-            onSettled = { strokes -> act { recordInk(strokes) } },
+            onSettled = { strokes ->
+                var payload: GestureCalibrationPayload? = null
+                act {
+                    if (recordInk(strokes) is GestureCalibrationEvent.Recorded) {
+                        payload = payloadForCurrentAction()
+                    }
+                }
+                payload?.let { p ->
+                    scope.launch(Dispatchers.IO + NonCancellable) { recognizer.commitGestureTraining(p) }
+                }
+            },
             onNext = { leftover ->
                 act {
                     recordInk(leftover)

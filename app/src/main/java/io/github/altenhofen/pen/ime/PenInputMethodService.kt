@@ -102,6 +102,7 @@ class PenInputMethodService : InputMethodService() {
     }
 
     private fun onGlyph(strokes: List<Stroke>) {
+        recognizer.reload()
         val threshold = MotorSettings.FIXED_AMBIGUITY_THRESHOLD
         val gesture = recognizer.recognizeGesture(strokes, threshold)
         val template = recognizer.recognize(strokes, threshold)
