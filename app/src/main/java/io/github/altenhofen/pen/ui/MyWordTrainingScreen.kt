@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -23,11 +24,13 @@ internal fun MyWordTrainingScreen(
     word: String,
     sampleCount: Int,
     capture: CaptureStyle,
+    allowFingerInput: Boolean,
     onSample: (List<Stroke>) -> Unit,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val onSampleState = rememberUpdatedState(onSample)
+    val fingerInk by rememberUpdatedState(allowFingerInput)
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -37,7 +40,11 @@ internal fun MyWordTrainingScreen(
         AndroidView(
             modifier = Modifier.weight(1f),
             factory = { context ->
-                DrawingCanvasView(context, acceptsTool = StylusGate::acceptsTraining).apply {
+                val density = context.resources.displayMetrics.density
+                DrawingCanvasView(
+                    context,
+                    acceptsTouch = { event -> StylusGate.acceptsImeInk(event, density, fingerInk) },
+                ).apply {
                     configure(capture)
                     setOnGlyphSettledListener { strokes ->
                         onSampleState.value(strokes)

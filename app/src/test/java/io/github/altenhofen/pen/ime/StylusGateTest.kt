@@ -7,25 +7,29 @@ import org.junit.Test
 
 class StylusGateTest {
     @Test
-    fun fingerDoubleTapAllowedWhenInkDisabled() {
+    fun imeRejectsFingerWhenFingerInkDisabled() {
         assertFalse(StylusGate.acceptsIme(MotionEvent.TOOL_TYPE_FINGER, allowFingerInput = false))
-        assertTrue(
-            StylusGate.acceptsImePointer(
-                MotionEvent.TOOL_TYPE_FINGER,
-                allowFingerInput = false,
-                doubleTapForSpace = true,
-            ),
-        )
+        assertTrue(StylusGate.acceptsIme(MotionEvent.TOOL_TYPE_STYLUS, allowFingerInput = false))
     }
 
     @Test
-    fun fingerPointerBlockedWhenDoubleTapOff() {
-        assertFalse(
-            StylusGate.acceptsImePointer(
-                MotionEvent.TOOL_TYPE_FINGER,
-                allowFingerInput = false,
-                doubleTapForSpace = false,
-            ),
-        )
+    fun imeAcceptsFingerWhenFingerInkEnabled() {
+        assertTrue(StylusGate.acceptsIme(MotionEvent.TOOL_TYPE_FINGER, allowFingerInput = true))
+    }
+
+    @Test
+    fun narrowContactCountsAsPassivePen() {
+        assertTrue(StylusGate.narrowContact(major = 18f, minor = 12f, density = 3f))
+    }
+
+    @Test
+    fun wideContactIsNotPassivePen() {
+        assertFalse(StylusGate.narrowContact(major = 48f, minor = 40f, density = 3f))
+    }
+
+    @Test
+    fun zeroEllipseUsesSmallNormalizedSize() {
+        assertTrue(StylusGate.smallNormalizedTouchSize(0.05f))
+        assertFalse(StylusGate.smallNormalizedTouchSize(0.2f))
     }
 }

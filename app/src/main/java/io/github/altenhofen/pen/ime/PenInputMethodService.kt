@@ -1,10 +1,16 @@
 package io.github.altenhofen.pen.ime
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.inputmethodservice.InputMethodService
+import android.os.Build
 import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import io.github.altenhofen.pen.recognition.PrototypeDatabase
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
 import io.github.altenhofen.pen.recognition.CustomDictionarySource
 import io.github.altenhofen.pen.recognition.Feedback
@@ -50,6 +56,15 @@ class PenInputMethodService : InputMethodService() {
     private var glyphGeneration = 0
     private var lastReinforced: ReinforcedSample? = null
 
+    private val packageReplacedReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            PrototypeDatabase.invalidate()
+            if (::recognizer.isInitialized) {
+                recognizer = AdaptiveRecognizer.open(this@PenInputMethodService)
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         settings = MotorSettingsStore.open(this)
@@ -59,9 +74,16 @@ class PenInputMethodService : InputMethodService() {
         customWordStore = CustomWordStore.open(this)
         activeSettings = settings.readBlocking()
         useResolvedInkLanguage()
+        val filter = IntentFilter(Intent.ACTION_MY_PACKAGE_REPLACED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(packageReplacedReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(packageReplacedReceiver, filter)
+        }
     }
 
     override fun onDestroy() {
+        unregisterReceiver(packageReplacedReceiver)
         inkModel.close()
         super.onDestroy()
     }
@@ -102,11 +124,12 @@ class PenInputMethodService : InputMethodService() {
     private fun applyImeCanvasPolicy(canvas: DrawingCanvasView) {
         val settings = activeSettings
         canvas.configure(settings.capture())
+        val density = resources.displayMetrics.density
         canvas.configureImePointers(
             acceptsPointer = {
-                StylusGate.acceptsImePointer(it, settings.allowFingerInput, settings.doubleTapForSpace)
+                StylusGate.acceptsImePointer(it, density, settings.allowFingerInput, settings.doubleTapForSpace)
             },
-            mayInk = { StylusGate.acceptsIme(it, settings.allowFingerInput) },
+            mayInk = { StylusGate.acceptsImeInk(it, density, settings.allowFingerInput) },
         )
         canvas.setDoubleTapForSpaceEnabled(settings.doubleTapForSpace)
     }
@@ -115,17 +138,18 @@ class PenInputMethodService : InputMethodService() {
         recognizer.reload()
         val threshold = MotorSettings.FIXED_AMBIGUITY_THRESHOLD
         val gesture = recognizer.recognizeGesture(strokes, threshold)
-        val template = recognizer.recognize(strokes, threshold)
-        if (GestureMatchPolicy.shouldFire(gesture, template, threshold)) {
+        if (GestureMatchPolicy.shouldFire(gesture, threshold)) {
             val connection = currentInputConnection
-            if (connection != null && gestureExecutor.perform(gesture!!.winner.action, connection)) {
+            val action = gesture!!.winner.action
+            if (connection != null && gestureExecutor.perform(action, connection)) {
                 resolve(pending.corrected())
                 committed = null
                 pendingAt = 0L
                 keyboard?.showSuggestions(emptyList(), null)
-                return
             }
+            return
         }
+        val template = recognizer.recognize(strokes, threshold)
         val shape = wordFeatures(strokes)
         val recalls = shape?.let(words::recall).orEmpty()
         val generation = ++glyphGeneration
@@ -280,6 +304,11 @@ class PenInputMethodService : InputMethodService() {
             resolve(pending.corrected())
             currentInputConnection?.let(::maybeUndoOnDelete)
         }
+    }
+
+    override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
+        super.onStartInput(attribute, restarting)
+        if (::recognizer.isInitialized) recognizer.reload()
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {

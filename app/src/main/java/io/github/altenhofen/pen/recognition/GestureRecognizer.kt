@@ -34,14 +34,9 @@ internal class GestureRecognizer(private val metric: DistanceMetric = DistanceMe
 }
 
 internal object GestureMatchPolicy {
-    fun shouldFire(
-        gesture: GestureRecognitionResult?,
-        glyph: RecognitionResult?,
-        threshold: Float,
-    ): Boolean {
+    fun shouldFire(gesture: GestureRecognitionResult?, threshold: Float): Boolean {
         if (gesture == null) return false
-        if (gesture.ambiguity.gap < gesture.ambiguity.threshold) return false
-        val glyphDistance = glyph?.winner?.distance ?: Float.POSITIVE_INFINITY
-        return gesture.winner.distance < glyphDistance
+        if (gesture.ambiguity.gap < threshold) return false
+        return gesture.winner.distance <= GestureAction.MAX_FIRE_DISTANCE
     }
 }

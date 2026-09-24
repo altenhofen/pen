@@ -48,13 +48,9 @@ internal class GestureCalibrationSession private constructor(
 
     fun recordInk(strokes: List<Stroke>): GestureCalibrationEvent {
         val action = currentAction ?: return GestureCalibrationEvent.Ignored
-        var recorded = false
-        for (glyph in partitionGlyphs(strokes)) {
-            val sample = featuresFromStrokes(glyph) ?: continue
-            samples.getValue(action).add(sample)
-            recorded = true
-        }
-        return if (recorded) GestureCalibrationEvent.Recorded else GestureCalibrationEvent.Ignored
+        val sample = featuresFromStrokes(strokes) ?: return GestureCalibrationEvent.Ignored
+        samples.getValue(action).add(sample)
+        return GestureCalibrationEvent.Recorded
     }
 
     fun payloadForCurrentAction(): GestureCalibrationPayload? {

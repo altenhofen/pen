@@ -43,6 +43,9 @@ internal class AdaptiveRecognizer(
     }
 
     fun commitGestureTraining(payload: GestureCalibrationPayload) {
+        if (payload.clusters.size >= GestureAction.MIN_TRAINING_SAMPLES) {
+            gestureStore.removeTraining(payload.clusters.map { it.action }.distinct())
+        }
         gestureStore.commitTraining(payload)
         reload()
     }

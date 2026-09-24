@@ -42,6 +42,7 @@ import kotlinx.coroutines.withContext
 internal fun GestureCalibrationScreen(
     recognizer: AdaptiveRecognizer,
     capture: CaptureStyle,
+    allowFingerInput: Boolean,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -92,6 +93,7 @@ internal fun GestureCalibrationScreen(
             ),
             sessionKey = phase.session.currentAction,
             capture = capture,
+            allowFingerInput = allowFingerInput,
             canAdvance = phase.session.canAdvance,
             onSettled = { strokes ->
                 var payload: GestureCalibrationPayload? = null

@@ -9,6 +9,14 @@ import org.junit.Test
 
 class GestureCalibrationSessionTest {
     @Test
+    fun multiStrokeSettleCountsAsOneSample() {
+        val session = GestureCalibrationSession.begin(listOf(GestureAction.DeleteLine))
+        val twoStrokes = seedStrokes('z') + seedStrokes('z')
+        assertEquals(GestureCalibrationEvent.Recorded, session.recordInk(twoStrokes))
+        assertEquals(1, session.sampleCount)
+    }
+
+    @Test
     fun needsFiveSamplesBeforeAdvancing() {
         val session = GestureCalibrationSession.begin(listOf(GestureAction.Undo))
         repeat(4) {

@@ -142,12 +142,14 @@ class MainActivity : AppCompatActivity() {
                         LauncherScreen.Calibrate -> CalibrationMinigameScreen(
                             recognizer = recognizer,
                             capture = current.capture(),
+                            allowFingerInput = current.allowFingerInput,
                             onDone = { screen = LauncherScreen.Settings },
                             modifier = Modifier.padding(innerPadding),
                         )
                         LauncherScreen.Gestures -> GestureCalibrationScreen(
                             recognizer = recognizer,
                             capture = current.capture(),
+                            allowFingerInput = current.allowFingerInput,
                             onDone = { screen = LauncherScreen.Settings },
                             modifier = Modifier.padding(innerPadding),
                         )
@@ -178,6 +180,7 @@ class MainActivity : AppCompatActivity() {
                             word = trainingWord,
                             sampleCount = trainingSamples,
                             capture = current.capture(),
+                            allowFingerInput = current.allowFingerInput,
                             onSample = { strokes ->
                                 val vector = wordFeatures(strokes) ?: return@MyWordTrainingScreen
                                 scope.launch(Dispatchers.IO) {
