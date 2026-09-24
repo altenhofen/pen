@@ -28,6 +28,7 @@ for _ in $(seq 1 20); do
   if printf '%s' "$dump" | grep -q 'text="Import profile"'; then
     break
   fi
+  adb -s "$SERIAL" shell input swipe 540 1800 540 600 200
   sleep 1
 done
 printf '%s' "$dump" | grep -q 'text="Import profile"'
