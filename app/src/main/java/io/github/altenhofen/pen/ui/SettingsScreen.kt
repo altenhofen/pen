@@ -11,8 +11,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -32,6 +34,24 @@ import io.github.altenhofen.pen.settings.InkLanguage
 import io.github.altenhofen.pen.settings.MotorSettings
 import java.util.Locale
 import kotlin.math.roundToLong
+
+private enum class RunwayPanel {
+    ReadyToWrite,
+    TeachRecognition,
+    InkAndTiming,
+    Language,
+    ProfileBackup,
+}
+
+private object SettingsRunway {
+    val defaultOrder: List<RunwayPanel> = listOf(
+        RunwayPanel.ReadyToWrite,
+        RunwayPanel.TeachRecognition,
+        RunwayPanel.InkAndTiming,
+        RunwayPanel.Language,
+        RunwayPanel.ProfileBackup,
+    )
+}
 
 @Composable
 internal fun SettingsScreen(
@@ -63,84 +83,139 @@ internal fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineSmall)
-        SettingSwitch(
-            title = stringResource(R.string.space_after_full_word),
-            hint = stringResource(R.string.space_after_full_word_hint),
-            checked = current.spaceAfterFullWord,
-            onCheckedChange = { enabled -> onUpdate { settings -> settings.withSpaceAfterFullWord(enabled) } },
-        )
-        SettingSwitch(
-            title = stringResource(R.string.recognize_spaces_in_handwriting),
-            hint = stringResource(R.string.recognize_spaces_in_handwriting_hint),
-            checked = current.recognizeSpacesInHandwriting,
-            onCheckedChange = { enabled ->
-                onUpdate { settings -> settings.withRecognizeSpacesInHandwriting(enabled) }
-            },
-        )
-        SettingSlider(
-            label = stringResource(R.string.settle_window),
-            value = current.settleMillis.toFloat(),
-            range = MotorSettings.MIN_SETTLE_MILLIS.toFloat()..MotorSettings.MAX_SETTLE_MILLIS.toFloat(),
-            valueText = { stringResource(R.string.settle_window_value, it.roundToLong()) },
-            onCommit = { onUpdate { settings -> settings.withSettleMillis(it.roundToLong()) } },
-        )
-        SettingSlider(
-            label = stringResource(R.string.stroke_width),
-            value = current.strokeWidthDp,
-            range = MotorSettings.MIN_STROKE_WIDTH_DP..MotorSettings.MAX_STROKE_WIDTH_DP,
-            valueText = { stringResource(R.string.stroke_width_value, it) },
-            onCommit = { onUpdate { settings -> settings.withStrokeWidthDp(it) } },
-        )
-        SettingSwitch(
-            title = stringResource(R.string.allow_finger_input),
-            hint = stringResource(R.string.allow_finger_input_hint),
-            checked = current.allowFingerInput,
-            onCheckedChange = { enabled -> onUpdate { settings -> settings.withAllowFingerInput(enabled) } },
-        )
-        SettingSwitch(
-            title = stringResource(R.string.double_tap_for_space),
-            hint = stringResource(R.string.double_tap_for_space_hint),
-            checked = current.doubleTapForSpace,
-            onCheckedChange = { enabled -> onUpdate { settings -> settings.withDoubleTapForSpace(enabled) } },
-        )
-        Button(onClick = onMyWords) {
-            Text(stringResource(R.string.action_my_words))
-        }
-        Button(onClick = onGestures) {
-            Text(stringResource(R.string.action_gestures))
-        }
-        Button(onClick = onCalibrate) {
-            Text(stringResource(R.string.action_calibrate))
-        }
-        Button(onClick = onSetDefaultKeyboard) {
-            Text(stringResource(R.string.action_set_default_keyboard))
-        }
-        Button(onClick = onExport) {
-            Text(stringResource(R.string.action_export_profile))
-        }
-        Button(onClick = onImport) {
-            Text(stringResource(R.string.action_import_profile))
-        }
-        Text(stringResource(R.string.language_section), style = MaterialTheme.typography.titleMedium)
-        LanguagePicker(
-            label = stringResource(R.string.app_language),
-            options = APP_LANGUAGE_OPTIONS,
-            selected = appLanguage,
-            optionLabel = { it?.let { language -> nativeName(language.tag) } ?: stringResource(R.string.app_language_system_default) },
-            onPick = onAppLanguage,
-        )
-        LanguagePicker(
-            label = stringResource(R.string.handwriting_language),
-            options = HANDWRITING_OPTIONS,
-            selected = current.handwriting,
-            optionLabel = {
-                when (it) {
-                    HandwritingLanguage.FollowApp -> stringResource(R.string.handwriting_language_follow_app)
-                    is HandwritingLanguage.Explicit -> nativeName(it.language.tag)
+        SettingsRunway.defaultOrder.forEach { panel ->
+            when (panel) {
+                RunwayPanel.ReadyToWrite -> OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Button(onClick = onCalibrate, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.action_calibrate))
+                        }
+                        Button(onClick = onSetDefaultKeyboard, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.action_set_default_keyboard))
+                        }
+                    }
                 }
-            },
-            onPick = { choice -> onUpdate { settings -> settings.withHandwriting(choice) } },
-        )
+                RunwayPanel.TeachRecognition -> OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Button(onClick = onMyWords, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.action_my_words))
+                        }
+                        Button(onClick = onGestures, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.action_gestures))
+                        }
+                    }
+                }
+                RunwayPanel.InkAndTiming -> OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        SettingSwitch(
+                            title = stringResource(R.string.space_after_full_word),
+                            hint = stringResource(R.string.space_after_full_word_hint),
+                            checked = current.spaceAfterFullWord,
+                            onCheckedChange = { enabled ->
+                                onUpdate { settings -> settings.withSpaceAfterFullWord(enabled) }
+                            },
+                        )
+                        SettingSwitch(
+                            title = stringResource(R.string.recognize_spaces_in_handwriting),
+                            hint = stringResource(R.string.recognize_spaces_in_handwriting_hint),
+                            checked = current.recognizeSpacesInHandwriting,
+                            onCheckedChange = { enabled ->
+                                onUpdate { settings -> settings.withRecognizeSpacesInHandwriting(enabled) }
+                            },
+                        )
+                        HorizontalDivider()
+                        SettingSlider(
+                            label = stringResource(R.string.settle_window),
+                            value = current.settleMillis.toFloat(),
+                            range = MotorSettings.MIN_SETTLE_MILLIS.toFloat()..MotorSettings.MAX_SETTLE_MILLIS.toFloat(),
+                            valueText = { stringResource(R.string.settle_window_value, it.roundToLong()) },
+                            onCommit = { onUpdate { settings -> settings.withSettleMillis(it.roundToLong()) } },
+                        )
+                        SettingSlider(
+                            label = stringResource(R.string.stroke_width),
+                            value = current.strokeWidthDp,
+                            range = MotorSettings.MIN_STROKE_WIDTH_DP..MotorSettings.MAX_STROKE_WIDTH_DP,
+                            valueText = { stringResource(R.string.stroke_width_value, it) },
+                            onCommit = { onUpdate { settings -> settings.withStrokeWidthDp(it) } },
+                        )
+                        SettingSwitch(
+                            title = stringResource(R.string.allow_finger_input),
+                            hint = stringResource(R.string.allow_finger_input_hint),
+                            checked = current.allowFingerInput,
+                            onCheckedChange = { enabled ->
+                                onUpdate { settings -> settings.withAllowFingerInput(enabled) }
+                            },
+                        )
+                        SettingSwitch(
+                            title = stringResource(R.string.double_tap_for_space),
+                            hint = stringResource(R.string.double_tap_for_space_hint),
+                            checked = current.doubleTapForSpace,
+                            onCheckedChange = { enabled ->
+                                onUpdate { settings -> settings.withDoubleTapForSpace(enabled) }
+                            },
+                        )
+                    }
+                }
+                RunwayPanel.Language -> OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Text(
+                            stringResource(R.string.language_section),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        LanguagePicker(
+                            label = stringResource(R.string.app_language),
+                            options = APP_LANGUAGE_OPTIONS,
+                            selected = appLanguage,
+                            optionLabel = {
+                                it?.let { language -> nativeName(language.tag) }
+                                    ?: stringResource(R.string.app_language_system_default)
+                            },
+                            onPick = onAppLanguage,
+                        )
+                        LanguagePicker(
+                            label = stringResource(R.string.handwriting_language),
+                            options = HANDWRITING_OPTIONS,
+                            selected = current.handwriting,
+                            optionLabel = {
+                                when (it) {
+                                    HandwritingLanguage.FollowApp ->
+                                        stringResource(R.string.handwriting_language_follow_app)
+                                    is HandwritingLanguage.Explicit -> nativeName(it.language.tag)
+                                }
+                            },
+                            onPick = { choice ->
+                                onUpdate { settings -> settings.withHandwriting(choice) }
+                            },
+                        )
+                    }
+                }
+                RunwayPanel.ProfileBackup -> OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedButton(onClick = onExport, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.action_export_profile))
+                        }
+                        OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.action_import_profile))
+                        }
+                    }
+                }
+            }
+        }
         if (status != null) {
             Text(status)
         }
