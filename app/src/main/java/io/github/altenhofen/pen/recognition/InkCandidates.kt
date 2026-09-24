@@ -31,15 +31,40 @@ internal fun commitTextForSuggestionPick(
     text: String,
     mode: SpaceAfterSuggestion,
     replaced: String,
-): String = if (appendSpaceAfterSuggestion(mode, text, replaced)) "$text " else text
+): String {
+    val (payload, _) = formatSuggestionCommit(text, mode, replaced)
+    return payload
+}
+
+internal fun formatSuggestionCommit(
+    text: String,
+    mode: SpaceAfterSuggestion,
+    replaced: String,
+): Pair<String, Boolean> {
+    val space = appendSpaceAfterSuggestion(mode, text, replaced)
+    return if (space) "$text " to true else text to false
+}
 
 private fun suggestionPickCompletesWord(picked: String, replaced: String): Boolean {
-    if (picked.length == 1 && picked[0].isLetterOrDigit()) return false
+    if (isSingleAlphanumeric(picked)) return false
+    if (pickedExtendsReplaced(picked, replaced)) return true
+    if (pickedShortensReplaced(picked, replaced)) return false
+    return picked.length > 1
+}
+
+private fun isSingleAlphanumeric(picked: String): Boolean =
+    picked.length == 1 && picked[0].isLetterOrDigit()
+
+private fun pickedExtendsReplaced(picked: String, replaced: String): Boolean {
     val pickedLower = picked.lowercase()
     val replacedLower = replaced.lowercase()
-    if (replacedLower.length < pickedLower.length && pickedLower.startsWith(replacedLower)) return true
-    if (pickedLower.length < replacedLower.length && replacedLower.startsWith(pickedLower)) return false
-    return picked.length > 1
+    return replacedLower.length < pickedLower.length && pickedLower.startsWith(replacedLower)
+}
+
+private fun pickedShortensReplaced(picked: String, replaced: String): Boolean {
+    val pickedLower = picked.lowercase()
+    val replacedLower = replaced.lowercase()
+    return pickedLower.length < replacedLower.length && replacedLower.startsWith(pickedLower)
 }
 
 internal fun spellingDistance(left: String, right: String): Int {

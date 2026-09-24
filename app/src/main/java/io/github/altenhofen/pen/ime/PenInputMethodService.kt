@@ -26,7 +26,7 @@ import io.github.altenhofen.pen.recognition.WordMemorySource
 import io.github.altenhofen.pen.recognition.WordMemoryStore
 import io.github.altenhofen.pen.recognition.WordSample
 import io.github.altenhofen.pen.recognition.blendSuggestions
-import io.github.altenhofen.pen.recognition.appendSpaceAfterSuggestion
+import io.github.altenhofen.pen.recognition.formatSuggestionCommit
 import io.github.altenhofen.pen.recognition.isFullWord
 import io.github.altenhofen.pen.recognition.isPunctuationOnly
 import io.github.altenhofen.pen.recognition.supportsInkLanguage
@@ -207,15 +207,15 @@ class PenInputMethodService : InputMethodService() {
         clearTrailingAutoSpace(connection)
         resolve(pending.picked(suggestion.text))
         connection.deleteSurroundingText(previous.length, 0)
-        connection.commitText(suggestion.text, 1)
+        val (inserted, spaced) = formatSuggestionCommit(
+            suggestion.text,
+            activeSettings.spaceAfterSuggestion,
+            previous,
+        )
+        connection.commitText(inserted, 1)
         committed = suggestion.text
+        trailingAutoSpace = spaced
         keyboard?.showSuggestions(listOf(suggestion), suggestion.text)
-        if (appendSpaceAfterSuggestion(activeSettings.spaceAfterSuggestion, suggestion.text, previous)) {
-            connection.commitText(" ", 1)
-            trailingAutoSpace = true
-        } else {
-            trailingAutoSpace = false
-        }
     }
 
 
