@@ -23,20 +23,30 @@ internal class GestureRecognizer(private val metric: DistanceMetric = DistanceMe
             }
             .sortedBy { it.distance }
         val winner = ranked.first()
+        if (!winner.distance.isFinite()) return null
         val gap = ranked.getOrNull(1)?.let { it.distance - winner.distance } ?: Float.POSITIVE_INFINITY
         return GestureRecognitionResult(winner, ranked, Ambiguity(gap, threshold), sample)
     }
 
-    private fun distance(left: FeatureVector, right: FeatureVector): Float = when (metric) {
-        DistanceMetric.EUCLIDEAN -> meanEuclidean(left, right)
-        DistanceMetric.DTW -> bandedDtw(left, right)
+    private fun distance(left: FeatureVector, right: FeatureVector): Float {
+        if (!shapeCompatible(shapeSignature(left), shapeSignature(right))) return Float.POSITIVE_INFINITY
+        return when (metric) {
+            DistanceMetric.EUCLIDEAN -> meanEuclidean(left, right)
+            DistanceMetric.DTW -> bandedDtw(left, right)
+        }
     }
 }
 
 internal object GestureMatchPolicy {
-    fun shouldFire(gesture: GestureRecognitionResult?, threshold: Float): Boolean {
+    fun shouldFire(
+        gesture: GestureRecognitionResult?,
+        glyph: RecognitionResult?,
+        threshold: Float,
+    ): Boolean {
         if (gesture == null) return false
         if (gesture.ambiguity.gap < threshold) return false
-        return gesture.winner.distance <= GestureAction.MAX_FIRE_DISTANCE
+        if (gesture.winner.distance > GestureAction.MAX_FIRE_DISTANCE) return false
+        val glyphDistance = glyph?.winner?.distance ?: Float.POSITIVE_INFINITY
+        return gesture.winner.distance <= glyphDistance
     }
 }
