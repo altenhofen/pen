@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Button
@@ -170,12 +171,20 @@ private fun GlyphPickerGrid(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            items(CalibrateGlyphs.ALL, key = { it }) { glyph ->
-                FilterChip(
-                    selected = glyph in selected,
-                    onClick = { onToggle(glyph) },
-                    label = { Text(glyph.toString()) },
-                )
+            CalibrateGlyphs.families.forEach { family ->
+                item(
+                    key = family.titleRes,
+                    span = { GridItemSpan(maxLineSpan) },
+                ) {
+                    Text(stringResource(family.titleRes))
+                }
+                items(family.labels, key = { it }) { glyph ->
+                    FilterChip(
+                        selected = glyph in selected,
+                        onClick = { onToggle(glyph) },
+                        label = { Text(glyph.toString()) },
+                    )
+                }
             }
         }
         Button(onClick = onStart, enabled = SelectedGlyphs.of(selected) != null) {

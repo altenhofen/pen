@@ -36,6 +36,10 @@
     <string name="action_unlock">Unlock</string>
     <string name="calibrate_title">Calibrate</string>
     <string name="calibrate_pick_prompt">Select characters to train</string>
+    <string name="calibrate_section_digits">Digits</string>
+    <string name="calibrate_section_uppercase">Uppercase</string>
+    <string name="calibrate_section_lowercase">Lowercase</string>
+    <string name="calibrate_section_math">Math</string>
     <string name="action_select_all">Select all</string>
     <string name="action_select_none">Select none</string>
     <string name="action_start">Start</string>
