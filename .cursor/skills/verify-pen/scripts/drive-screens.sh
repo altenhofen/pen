@@ -88,6 +88,15 @@ shot gestures 'text="Gesture actions"'
 adb -s "$SERIAL" shell am start -n io.github.altenhofen.pen/.MainActivity -f 0x10008000
 shot settings 'text="Pen settings"'
 
+for _ in $(seq 1 8); do
+  if grep -q 'text="Export profile"' "$OUT/settings.xml"; then
+    break
+  fi
+  adb -s "$SERIAL" shell input swipe 540 1800 540 600 200
+  sleep 1
+  adb -s "$SERIAL" exec-out uiautomator dump /dev/tty >"$OUT/settings.xml" 2>/dev/null || true
+done
+
 tap="$(tap_label "Export profile" "$OUT/settings.xml")"
 adb -s "$SERIAL" shell input tap $tap
 shot export-passphrase 'text="Protect this export"'

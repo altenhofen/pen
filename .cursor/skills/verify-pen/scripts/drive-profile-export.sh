@@ -50,6 +50,7 @@ sleep 1
 for _ in $(seq 1 20); do
   adb -s "$SERIAL" exec-out uiautomator dump /dev/tty >"$OUT/hierarchy.xml" 2>/dev/null || true
   clean_dump "$OUT/hierarchy.xml" | grep -q 'text="Export profile"' && break
+  adb -s "$SERIAL" shell input swipe 540 1800 540 600 200
   sleep 1
 done
 clean_dump "$OUT/hierarchy.xml" | grep -q 'text="Export profile"'
