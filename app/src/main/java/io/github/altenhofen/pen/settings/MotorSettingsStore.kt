@@ -36,6 +36,7 @@ private val SETTLE_MILLIS = longPreferencesKey("settle_millis")
 private val STROKE_WIDTH_DP = floatPreferencesKey("stroke_width_dp")
 private val ALLOW_FINGER_INPUT = booleanPreferencesKey("allow_finger_input")
 private val SPACE_AFTER_FULL_WORD = booleanPreferencesKey("space_after_full_word")
+private val SPACE_AFTER_SUGGESTION = stringPreferencesKey("space_after_suggestion")
 private val RECOGNIZE_SPACES = booleanPreferencesKey("recognize_spaces_in_handwriting")
 private val DOUBLE_TAP_FOR_SPACE = booleanPreferencesKey("double_tap_for_space")
 private val HANDWRITING_LANGUAGE = stringPreferencesKey("handwriting_language")
@@ -70,6 +71,7 @@ private class PreferencesMotorSettingsStore(private val store: DataStore<Prefere
             prefs[RECOGNIZE_SPACES],
             prefs[DOUBLE_TAP_FOR_SPACE],
             prefs[HANDWRITING_LANGUAGE],
+            prefs[SPACE_AFTER_SUGGESTION],
         )
 
     private fun writeInto(prefs: MutablePreferences, settings: MotorSettings) {
@@ -77,6 +79,7 @@ private class PreferencesMotorSettingsStore(private val store: DataStore<Prefere
         prefs[STROKE_WIDTH_DP] = settings.strokeWidthDp
         prefs[ALLOW_FINGER_INPUT] = settings.allowFingerInput
         prefs[SPACE_AFTER_FULL_WORD] = settings.spaceAfterFullWord
+        prefs[SPACE_AFTER_SUGGESTION] = settings.spaceAfterSuggestion.stored()
         prefs[RECOGNIZE_SPACES] = settings.recognizeSpacesInHandwriting
         prefs[DOUBLE_TAP_FOR_SPACE] = settings.doubleTapForSpace
         val handwriting = settings.handwriting.stored()

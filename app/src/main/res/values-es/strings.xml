@@ -1,7 +1,12 @@
 <resources>
     <string name="settings_title">Ajustes del lápiz</string>
     <string name="space_after_full_word">Espacio tras palabra completa</string>
-    <string name="space_after_full_word_hint">Tras elegir o escribir una palabra completa, escribe un espacio automáticamente.</string>
+    <string name="space_after_full_word_hint">Tras escribir una palabra completa, escribe un espacio automáticamente.</string>
+    <string name="space_after_suggestion">Espacio tras elegir sugerencia</string>
+    <string name="space_after_suggestion_hint">Tras elegir una sugerencia. Desactivado nunca pone espacio. Activado siempre, salvo puntuación. Inteligente lo pone al completar una palabra, no si sigue siendo un tronco.</string>
+    <string name="space_after_suggestion_off">Desactivado</string>
+    <string name="space_after_suggestion_on">Activado</string>
+    <string name="space_after_suggestion_smart">Inteligente</string>
     <string name="recognize_spaces_in_handwriting">Reconocer espacios al escribir</string>
     <string name="recognize_spaces_in_handwriting_hint">Activado, los huecos entre palabras son espacios. Desactivado, un trazo es una palabra.</string>
     <string name="settle_window">Ventana de estabilización</string>

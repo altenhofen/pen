@@ -3,7 +3,12 @@
     <string name="ime_name" translatable="false">pen ink</string>
     <string name="settings_title">Pen settings</string>
     <string name="space_after_full_word">Add space after full word</string>
-    <string name="space_after_full_word_hint">After you pick or write a whole word, type a space automatically. Punctuation moves the space after it.</string>
+    <string name="space_after_full_word_hint">After you write a whole word, type a space automatically. Punctuation moves the space after it.</string>
+    <string name="space_after_suggestion">Space after suggestion pick</string>
+    <string name="space_after_suggestion_hint">After you pick a chip. Off never adds a space. On always does, except punctuation. Smart adds a space when the pick finishes a word, not when it is still a stem.</string>
+    <string name="space_after_suggestion_off">Off</string>
+    <string name="space_after_suggestion_on">On</string>
+    <string name="space_after_suggestion_smart">Smart</string>
     <string name="recognize_spaces_in_handwriting">Recognize spaces in handwriting</string>
     <string name="recognize_spaces_in_handwriting_hint">When on, gaps between written words become spaces. When off, one stroke is treated as one word.</string>
     <string name="settle_window">Settle window</string>
