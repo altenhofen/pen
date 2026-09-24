@@ -14,6 +14,7 @@ import io.github.altenhofen.pen.recognition.PrototypeDatabase
 import io.github.altenhofen.pen.recognition.AdaptiveRecognizer
 import io.github.altenhofen.pen.recognition.CustomDictionarySource
 import io.github.altenhofen.pen.recognition.Feedback
+import io.github.altenhofen.pen.recognition.GestureAction
 import io.github.altenhofen.pen.recognition.GestureMatchPolicy
 import io.github.altenhofen.pen.recognition.GlyphTemplateSource
 import io.github.altenhofen.pen.recognition.InkModel
@@ -136,9 +137,10 @@ class PenInputMethodService : InputMethodService() {
 
     private fun onGlyph(strokes: List<Stroke>) {
         recognizer.reload()
-        val threshold = MotorSettings.FIXED_AMBIGUITY_THRESHOLD
-        val gesture = recognizer.recognizeGesture(strokes, threshold)
-        if (GestureMatchPolicy.shouldFire(gesture, threshold)) {
+        val glyphThreshold = MotorSettings.FIXED_AMBIGUITY_THRESHOLD
+        val gestureThreshold = GestureAction.MATCH_AMBIGUITY_THRESHOLD
+        val gesture = recognizer.recognizeGesture(strokes, gestureThreshold)
+        if (GestureMatchPolicy.shouldFire(gesture, gestureThreshold)) {
             val connection = currentInputConnection
             val action = gesture!!.winner.action
             if (connection != null && gestureExecutor.perform(action, connection)) {
@@ -149,7 +151,7 @@ class PenInputMethodService : InputMethodService() {
             }
             return
         }
-        val template = recognizer.recognize(strokes, threshold)
+        val template = recognizer.recognize(strokes, glyphThreshold)
         val shape = wordFeatures(strokes)
         val recalls = shape?.let(words::recall).orEmpty()
         val generation = ++glyphGeneration

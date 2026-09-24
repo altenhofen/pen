@@ -4,7 +4,7 @@ import android.view.MotionEvent
 import kotlin.math.max
 
 object StylusGate {
-    private const val PASSIVE_PEN_MAX_CONTACT_DP = 10f
+    private const val PASSIVE_PEN_MAX_CONTACT_DP = 14f
 
     fun accepts(toolType: Int): Boolean = toolType == MotionEvent.TOOL_TYPE_STYLUS
 
@@ -43,12 +43,17 @@ object StylusGate {
         val minor = event.getToolMinor(0).takeIf { it > 0f }
             ?: event.getAxisValue(MotionEvent.AXIS_TOUCH_MINOR)
         if (major <= 0f && minor <= 0f) {
-            return smallNormalizedTouchSize(event.getSize(0))
+            val size = event.getSize(0)
+            if (size > 0f) return smallNormalizedTouchSize(size)
+            return passivePenWithoutContactEllipse(toolType)
         }
         return narrowContact(major, minor, density)
     }
 
-    internal fun smallNormalizedTouchSize(size: Float): Boolean = size > 0f && size <= 0.15f
+    internal fun smallNormalizedTouchSize(size: Float): Boolean = size > 0f && size <= 0.25f
+
+    internal fun passivePenWithoutContactEllipse(toolType: Int): Boolean =
+        toolType == MotionEvent.TOOL_TYPE_FINGER || toolType == MotionEvent.TOOL_TYPE_UNKNOWN
 
     internal fun narrowContact(major: Float, minor: Float, density: Float): Boolean {
         if (major <= 0f && minor <= 0f) return false

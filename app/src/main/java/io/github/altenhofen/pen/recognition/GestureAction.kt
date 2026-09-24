@@ -31,8 +31,9 @@ enum class GestureAction(val id: String, @param:StringRes val labelRes: Int) {
 
     companion object {
         const val MIN_TRAINING_SAMPLES = 5
+        const val MATCH_AMBIGUITY_THRESHOLD = 0.12f
         /** Worst DTW distance still treated as an intentional gesture when inter-action gap clears the ambiguity threshold. */
-        const val MAX_FIRE_DISTANCE = 0.42f
+        const val MAX_FIRE_DISTANCE = 0.55f
 
         val catalog: List<GestureAction> = entries
 

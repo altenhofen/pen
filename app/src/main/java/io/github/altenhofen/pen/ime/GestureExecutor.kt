@@ -101,9 +101,12 @@ internal class GestureExecutor(
     }
 
     private fun deleteLastWord(connection: InputConnection): Boolean {
-        val word = lastWord(connection) ?: return false
+        val before = connection.getTextBeforeCursor(256, 0)?.toString().orEmpty()
+        val trimmed = before.trimEnd()
+        val word = trailingWord(trimmed) ?: return false
+        val trailingSpaces = before.length - trimmed.length
         undo.record(connection)
-        connection.deleteSurroundingText(word.length, 0)
+        connection.deleteSurroundingText(word.length + trailingSpaces, 0)
         return true
     }
 

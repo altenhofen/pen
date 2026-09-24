@@ -30,6 +30,12 @@ class StylusGateTest {
     @Test
     fun zeroEllipseUsesSmallNormalizedSize() {
         assertTrue(StylusGate.smallNormalizedTouchSize(0.05f))
-        assertFalse(StylusGate.smallNormalizedTouchSize(0.2f))
+        assertFalse(StylusGate.smallNormalizedTouchSize(0.3f))
+    }
+
+    @Test
+    fun missingContactEllipseAcceptsFingerToolType() {
+        assertTrue(StylusGate.passivePenWithoutContactEllipse(MotionEvent.TOOL_TYPE_FINGER))
+        assertFalse(StylusGate.passivePenWithoutContactEllipse(MotionEvent.TOOL_TYPE_STYLUS))
     }
 }

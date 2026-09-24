@@ -25,8 +25,8 @@ class GestureMatchPolicyTest {
 
     @Test
     fun doesNotFireWhenGestureDistanceExceedsMax() {
-        val gesture = gestureResult(GestureAction.DeleteLastWord, distance = 0.5f, gap = 0.4f)
-        assertFalse(GestureMatchPolicy.shouldFire(gesture, 0.15f))
+        val gesture = gestureResult(GestureAction.DeleteLastWord, distance = 0.6f, gap = 0.4f)
+        assertFalse(GestureMatchPolicy.shouldFire(gesture, GestureAction.MATCH_AMBIGUITY_THRESHOLD))
     }
 
     private fun gestureResult(action: GestureAction, distance: Float, gap: Float): GestureRecognitionResult {
