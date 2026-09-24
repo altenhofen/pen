@@ -13,6 +13,7 @@ import android.view.ViewConfiguration
 import kotlin.math.hypot
 import io.github.altenhofen.pen.settings.CaptureStyle
 import io.github.altenhofen.pen.settings.MotorSettings
+import io.github.altenhofen.pen.ui.theme.inkPalette
 
 fun interface OnGlyphSettledListener {
     fun onGlyphSettled(strokes: List<Stroke>)
@@ -139,12 +140,10 @@ class DrawingCanvasView(
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
-        color = 0xFF1A1A1A.toInt()
     }
 
     private val promptPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = 0x241A1A1A
         textAlign = Paint.Align.CENTER
         isFakeBoldText = true
     }
@@ -257,9 +256,13 @@ class DrawingCanvasView(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        canvas.drawColor(0xFFF7F4EF.toInt())
+        val palette = inkPalette(context)
+        canvas.drawColor(palette.paper)
+        ink.color = palette.ink
         val label = prompt
         if (!label.isNullOrEmpty() && width > 0 && height > 0) {
+            // Keep watermark opacity while tracking live ink color across night-mode flips.
+            promptPaint.color = (palette.ink and 0x00FFFFFF) or 0x24000000
             promptPaint.textSize = minOf(width, height) * 0.55f
             val metrics = promptPaint.fontMetrics
             val y = height / 2f - (metrics.ascent + metrics.descent) / 2f
