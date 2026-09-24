@@ -35,7 +35,7 @@ Read-only. Exit `0` only when the serial is `emulator-5556`, `sys.boot_completed
 
 ## Drive
 
-Harness is `adb` on `emulator-5556`. Stable handles are the visible strings `Pen settings`, `Finger and passive pen`, `My words`, `Calibrate`, `Gestures`, `Gesture actions`, `Clear all training`, `Set as default keyboard`, `Export profile`, `Import profile`, `Protect this export`, `Encrypt and save`, `Select characters to train`, `Select actions to train`, `Start`, `Now writing 0`, `pen-profile.penbak`, and `pen ink`. There are no content descriptions or test tags. Drive against English `values/strings.xml`. `app_name` and `ime_name` are not translated.
+Harness is `adb` on `emulator-5556`. Stable handles are the visible strings `Pen settings`, `Finger and passive pen`, `My words`, `Calibrate`, `Gestures`, `Gesture actions`, `Clear selected`, `Set as default keyboard`, `Export profile`, `Import profile`, `Protect this export`, `Encrypt and save`, `Select characters to train`, `Select actions to train`, `Start`, `Now writing 0`, `pen-profile.penbak`, and `pen ink`. There are no content descriptions or test tags. Drive against English `values/strings.xml`. `app_name` and `ime_name` are not translated.
 
 ```bash
 .cursor/skills/verify-pen/scripts/drive-settings.sh

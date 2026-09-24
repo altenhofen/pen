@@ -13,7 +13,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
@@ -71,15 +70,10 @@ internal fun GestureCalibrationScreen(
             onSelectAll = { act { selectAll() } },
             onSelectNone = { act { selectNone() } },
             onStart = { act { start() } },
-            onClearTraining = { action ->
+            onClearSelected = {
+                val toClear = phase.selected.filter { (phase.sampleCounts[it] ?: 0) > 0 }.toSet()
                 scope.launch(Dispatchers.IO + NonCancellable) {
-                    recognizer.clearGestureTraining(setOf(action))
-                    reloadSampleCounts()
-                }
-            },
-            onClearAllTraining = {
-                scope.launch(Dispatchers.IO + NonCancellable) {
-                    recognizer.clearAllGestureTraining()
+                    recognizer.clearGestureTraining(toClear)
                     reloadSampleCounts()
                 }
             },
@@ -143,12 +137,11 @@ private fun GesturePickerGrid(
     onSelectAll: () -> Unit,
     onSelectNone: () -> Unit,
     onStart: () -> Unit,
-    onClearTraining: (GestureAction) -> Unit,
-    onClearAllTraining: () -> Unit,
+    onClearSelected: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val hasAnyTraining = sampleCounts.values.any { it > 0 }
+    val canClearSelected = selected.any { (sampleCounts[it] ?: 0) > 0 }
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -162,6 +155,9 @@ private fun GesturePickerGrid(
             Button(onClick = onSelectNone) {
                 Text(stringResource(R.string.action_select_none))
             }
+            Button(onClick = onClearSelected, enabled = canClearSelected) {
+                Text(stringResource(R.string.gesture_clear_selected))
+            }
         }
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 160.dp),
@@ -172,32 +168,20 @@ private fun GesturePickerGrid(
             items(GestureAction.catalog, key = { it.id }) { action ->
                 val count = sampleCounts[action] ?: 0
                 val trained = count >= GestureAction.MIN_TRAINING_SAMPLES
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    FilterChip(
-                        selected = action in selected,
-                        onClick = { onToggle(action) },
-                        label = {
-                            Text(
-                                stringResource(
-                                    if (trained) R.string.calibrate_gesture_chip_trained else R.string.calibrate_gesture_chip,
-                                    stringResource(action.labelRes),
-                                    count,
-                                    GestureAction.MIN_TRAINING_SAMPLES,
-                                ),
-                            )
-                        },
-                    )
-                    if (count > 0) {
-                        TextButton(onClick = { onClearTraining(action) }) {
-                            Text(stringResource(R.string.gesture_clear_training))
-                        }
-                    }
-                }
-            }
-        }
-        if (hasAnyTraining) {
-            TextButton(onClick = onClearAllTraining) {
-                Text(stringResource(R.string.gesture_clear_all_training))
+                FilterChip(
+                    selected = action in selected,
+                    onClick = { onToggle(action) },
+                    label = {
+                        Text(
+                            stringResource(
+                                if (trained) R.string.calibrate_gesture_chip_trained else R.string.calibrate_gesture_chip,
+                                stringResource(action.labelRes),
+                                count,
+                                GestureAction.MIN_TRAINING_SAMPLES,
+                            ),
+                        )
+                    },
+                )
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
