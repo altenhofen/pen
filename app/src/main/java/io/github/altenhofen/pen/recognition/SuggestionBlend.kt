@@ -27,12 +27,12 @@ internal class InkModelSource(
 
 internal class GlyphTemplateSource(
     private val result: RecognitionResult?,
-    inkModel: InkModelSource,
+    private val inkModel: InkModelSource,
 ) : SuggestionSource {
     private val silentModel = inkModel.ranked.isEmpty()
     private val active = result != null && (silentModel || inkModel.ranked.first().length == 1)
     private val rankOf: Map<Char, Int> =
-        result?.ranked?.withIndex()?.associate { (rank, match) -> match.character.lowercaseChar() to rank }.orEmpty()
+        result?.ranked?.withIndex()?.associate { (rank, match) -> baseLetter(match.character) to rank }.orEmpty()
 
     override fun proposals(): List<String> =
         if (active && silentModel) result!!.ranked.map { it.character.toString() } else emptyList()
@@ -40,17 +40,30 @@ internal class GlyphTemplateSource(
     override fun score(candidate: String): Float {
         if (!active || candidate.length != 1) return 0f
         val result = result!!
-        val rank = rankOf[candidate.single().lowercaseChar()] ?: return 0f
+        val letter = candidate.single()
+        val base = baseLetter(letter)
+        val rank = rankOf[base] ?: return 0f
         val weight = if (result.winner.clusterId.isCalibrated) CALIBRATED_WEIGHT else SEED_WEIGHT
-        if (rank > 0) return weight / (rank + 1)
-        val confidence = (result.ambiguity.gap / result.ambiguity.threshold).coerceIn(0f, MAX_CONFIDENCE)
-        return weight * (0.5f + 0.5f * confidence)
+        val raw = if (rank > 0) {
+            weight / (rank + 1)
+        } else {
+            val confidence = (result.ambiguity.gap / result.ambiguity.threshold).coerceIn(0f, MAX_CONFIDENCE)
+            weight * (0.5f + 0.5f * confidence)
+        }
+        if (letter.lowercaseChar() == base && inkProposesAccented(base)) {
+            return raw * PLAIN_WHEN_ACCENTED_IN_INK
+        }
+        return raw
     }
+
+    private fun inkProposesAccented(base: Char): Boolean =
+        inkModel.ranked.any { it.length == 1 && baseLetter(it.single()) == base && hasDiacritic(it.single()) }
 
     private companion object {
         const val CALIBRATED_WEIGHT = 1.5f
         const val SEED_WEIGHT = 0.6f
         const val MAX_CONFIDENCE = 2f
+        const val PLAIN_WHEN_ACCENTED_IN_INK = 0.2f
     }
 }
 
