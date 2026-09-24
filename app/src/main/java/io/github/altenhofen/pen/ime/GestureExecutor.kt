@@ -111,11 +111,13 @@ internal class GestureExecutor(
     }
 
     private fun deleteLine(connection: InputConnection): Boolean {
-        val before = connection.getTextBeforeCursor(4096, 0)?.toString().orEmpty()
-        val after = connection.getTextAfterCursor(4096, 0)?.toString().orEmpty()
+        val before = connection.getTextBeforeCursor(8192, 0)?.toString().orEmpty()
+        val after = connection.getTextAfterCursor(8192, 0)?.toString().orEmpty()
         val (deleteBefore, deleteAfter) = lineDeletionRange(before, after) ?: return false
         undo.record(connection)
+        connection.beginBatchEdit()
         connection.deleteSurroundingText(deleteBefore, deleteAfter)
+        connection.endBatchEdit()
         return true
     }
 

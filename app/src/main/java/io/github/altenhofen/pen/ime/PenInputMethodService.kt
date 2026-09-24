@@ -6,6 +6,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.inputmethodservice.InputMethodService
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.View
@@ -16,6 +18,7 @@ import io.github.altenhofen.pen.recognition.CustomDictionarySource
 import io.github.altenhofen.pen.recognition.Feedback
 import io.github.altenhofen.pen.recognition.GestureAction
 import io.github.altenhofen.pen.recognition.GestureMatchPolicy
+import io.github.altenhofen.pen.recognition.GestureRecognitionResult
 import io.github.altenhofen.pen.recognition.GlyphTemplateSource
 import io.github.altenhofen.pen.recognition.InkModel
 import io.github.altenhofen.pen.recognition.InkModelSource
@@ -56,6 +59,10 @@ class PenInputMethodService : InputMethodService() {
     private var trailingAutoSpace = false
     private var glyphGeneration = 0
     private var lastReinforced: ReinforcedSample? = null
+    private val gestureStitchStrokes = ArrayList<Stroke>()
+    private var gestureStitchAt = 0L
+    private val gestureStitchHandler = Handler(Looper.getMainLooper())
+    private val gestureStitchFlush = Runnable { flushGestureStitchToInk() }
 
     private val packageReplacedReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -137,20 +144,64 @@ class PenInputMethodService : InputMethodService() {
 
     private fun onGlyph(strokes: List<Stroke>) {
         recognizer.reload()
-        val glyphThreshold = MotorSettings.FIXED_AMBIGUITY_THRESHOLD
+        val now = SystemClock.elapsedRealtime()
+        if (now - gestureStitchAt > GestureStitchPolicy.STITCH_MS) {
+            gestureStitchStrokes.clear()
+        }
+        gestureStitchStrokes.addAll(strokes)
+        gestureStitchAt = now
+
         val gestureThreshold = GestureAction.MATCH_AMBIGUITY_THRESHOLD
-        val gesture = recognizer.recognizeGesture(strokes, gestureThreshold)
+        val stitched = gestureStitchStrokes.toList()
+        val gesture = recognizer.recognizeGesture(stitched, gestureThreshold)
         if (GestureMatchPolicy.shouldFire(gesture, gestureThreshold)) {
-            val connection = currentInputConnection
-            val action = gesture!!.winner.action
-            if (connection != null && gestureExecutor.perform(action, connection)) {
-                resolve(pending.corrected())
-                committed = null
-                pendingAt = 0L
-                keyboard?.showSuggestions(emptyList(), null)
-            }
+            cancelGestureStitch()
+            executeGesture(gesture!!)
             return
         }
+        if (GestureStitchPolicy.shouldDeferNextStroke(gesture, stitched.size, gestureThreshold)) {
+            gestureStitchHandler.removeCallbacks(gestureStitchFlush)
+            gestureStitchHandler.postDelayed(gestureStitchFlush, GestureStitchPolicy.STITCH_MS)
+            return
+        }
+        val batch = gestureStitchStrokes.toList()
+        cancelGestureStitch()
+        recognizeInk(batch)
+    }
+
+    private fun flushGestureStitchToInk() {
+        val batch = gestureStitchStrokes.toList()
+        gestureStitchStrokes.clear()
+        gestureStitchAt = 0L
+        if (batch.isEmpty()) return
+        recognizer.reload()
+        val gestureThreshold = GestureAction.MATCH_AMBIGUITY_THRESHOLD
+        val gesture = recognizer.recognizeGesture(batch, gestureThreshold)
+        if (GestureMatchPolicy.shouldFire(gesture, gestureThreshold)) {
+            executeGesture(gesture!!)
+            return
+        }
+        recognizeInk(batch)
+    }
+
+    private fun cancelGestureStitch() {
+        gestureStitchHandler.removeCallbacks(gestureStitchFlush)
+        gestureStitchStrokes.clear()
+        gestureStitchAt = 0L
+    }
+
+    private fun executeGesture(gesture: GestureRecognitionResult) {
+        val connection = currentInputConnection
+        if (connection != null && gestureExecutor.perform(gesture.winner.action, connection)) {
+            resolve(pending.corrected())
+            committed = null
+            pendingAt = 0L
+            keyboard?.showSuggestions(emptyList(), null)
+        }
+    }
+
+    private fun recognizeInk(strokes: List<Stroke>) {
+        val glyphThreshold = MotorSettings.FIXED_AMBIGUITY_THRESHOLD
         val template = recognizer.recognize(strokes, glyphThreshold)
         val shape = wordFeatures(strokes)
         val recalls = shape?.let(words::recall).orEmpty()
@@ -315,6 +366,7 @@ class PenInputMethodService : InputMethodService() {
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
+        cancelGestureStitch()
         currentInputConnection?.finishComposingText()
         activeSettings = settings.readBlocking()
         useResolvedInkLanguage()
@@ -332,6 +384,7 @@ class PenInputMethodService : InputMethodService() {
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
+        cancelGestureStitch()
         keyboard?.canvas?.cancelPendingGlyph()
         super.onFinishInputView(finishingInput)
     }
