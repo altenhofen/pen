@@ -29,6 +29,9 @@ internal abstract class GestureDao {
     @Query("DELETE FROM gesture_clusters")
     abstract fun deleteAll()
 
+    @Query("DELETE FROM gesture_clusters WHERE action_id IN (:actionIds)")
+    abstract fun deleteForActions(actionIds: List<String>)
+
     @Transaction
     open fun replaceAll(rows: List<GestureClusterRow>) {
         deleteAll()
@@ -49,6 +52,15 @@ internal class GestureStore(private val dao: GestureDao) {
 
     fun sampleCounts(): Map<GestureAction, Int> =
         load().groupingBy { it.action }.eachCount()
+
+    fun removeTraining(actions: Collection<GestureAction>) {
+        if (actions.isEmpty()) return
+        dao.deleteForActions(actions.map { it.id })
+    }
+
+    fun clearAllTraining() {
+        dao.deleteAll()
+    }
 
     companion object {
         fun open(context: Context): GestureStore = GestureStore(PrototypeDatabase.open(context).gestures())

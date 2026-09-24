@@ -137,6 +137,10 @@ private class InMemoryGestureDao : GestureDao() {
     override fun deleteAll() {
         rows.clear()
     }
+
+    override fun deleteForActions(actionIds: List<String>) {
+        rows.entries.removeIf { (_, row) -> row.actionId in actionIds }
+    }
 }
 
 private class InMemoryPrototypeDao : PrototypeDao() {

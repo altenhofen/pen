@@ -47,6 +47,16 @@ internal class AdaptiveRecognizer(
         reload()
     }
 
+    fun clearGestureTraining(actions: Collection<GestureAction>) {
+        gestureStore.removeTraining(actions)
+        reload()
+    }
+
+    fun clearAllGestureTraining() {
+        gestureStore.clearAllTraining()
+        reload()
+    }
+
     companion object {
         fun open(context: Context): AdaptiveRecognizer =
             AdaptiveRecognizer(PrototypeStore.open(context), GestureStore.open(context))
