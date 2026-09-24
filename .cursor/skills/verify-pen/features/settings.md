@@ -38,7 +38,7 @@ Preconditions:
 
 ## Gotchas
 
-- The motor card is taller with `Space after suggestion pick`. Swipe before grepping `Finger and passive pen`, `Export profile`, or `Import profile`.
+- The motor card is taller with `Space after suggestion pick`. Swipe before grepping `Finger and passive pen`, `Double-tap for space`, `Export profile`, or `Import profile`.
 - Slider labels include the live value. Match `Settle window` rather than a frozen `600 ms` on an AVD that already has prefs.
 - The ambiguity threshold slider was removed; do not grep for it.
 - `Export profile` and `Import profile` sit below the fold. Swipe the settings list before grepping those labels.

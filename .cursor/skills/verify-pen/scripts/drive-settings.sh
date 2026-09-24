@@ -45,6 +45,7 @@ adb -s "$SERIAL" exec-out screencap -p >"$OUT/screen.png"
 
 for _ in $(seq 1 8); do
   if grep -q 'text="Finger and passive pen"' "$OUT/hierarchy.xml" \
+    && grep -q 'text="Double-tap for space"' "$OUT/hierarchy.xml" \
     && grep -q 'text="Export profile"' "$OUT/hierarchy.xml" \
     && grep -q 'text="Import profile"' "$OUT/hierarchy.xml"; then
     break
@@ -54,6 +55,7 @@ for _ in $(seq 1 8); do
   adb -s "$SERIAL" exec-out uiautomator dump /dev/tty >"$OUT/hierarchy.xml" 2>/dev/null || true
 done
 grep -q 'text="Finger and passive pen"' "$OUT/hierarchy.xml"
+grep -q 'text="Double-tap for space"' "$OUT/hierarchy.xml"
 grep -q 'text="Export profile"' "$OUT/hierarchy.xml"
 grep -q 'text="Import profile"' "$OUT/hierarchy.xml"
 echo "proof: $OUT"
