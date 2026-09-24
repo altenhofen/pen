@@ -8,6 +8,8 @@ import android.os.Handler
 import android.os.Looper
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
+import kotlin.math.hypot
 import io.github.altenhofen.pen.settings.CaptureStyle
 import io.github.altenhofen.pen.settings.MotorSettings
 
@@ -20,6 +22,7 @@ class DrawingCanvasView(
     private val acceptsTool: (toolType: Int) -> Boolean = StylusGate::accepts,
     private val autoSettle: Boolean = true,
     private val keepInkAfterSettle: Boolean = false,
+    private val doubleTapForSpace: Boolean = false,
 ) : View(context) {
     private val finished = ArrayList<Stroke>()
     private var active: Stroke? = null
@@ -30,9 +33,22 @@ class DrawingCanvasView(
     private val settleRunnable = Runnable { dispatchSettledGlyph() }
     private var settleMillis = MotorSettings.Default.settleMillis
     private var prompt: String? = null
+    private val tapSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
+    private var doubleTapDetector: DoubleTapDetector? = null
+    private var downX = 0f
+    private var downY = 0f
+    private var strokeIsTapCandidate = true
 
     fun setOnGlyphSettledListener(listener: OnGlyphSettledListener?) {
         settledListener = listener
+    }
+
+    fun setOnDoubleTapListener(listener: OnDoubleTapListener?) {
+        doubleTapDetector = if (doubleTapForSpace && listener != null) {
+            DoubleTapDetector.fromView(this, listener::onDoubleTap)
+        } else {
+            null
+        }
     }
 
     fun setPrompt(text: String?) {
@@ -100,6 +116,10 @@ class DrawingCanvasView(
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 settleHandler.removeCallbacks(settleRunnable)
+                doubleTapDetector?.cancel()
+                downX = event.x
+                downY = event.y
+                strokeIsTapCandidate = true
                 val stroke = Stroke()
                 stroke.append(event.x, event.y)
                 active = stroke
@@ -109,6 +129,9 @@ class DrawingCanvasView(
             }
             MotionEvent.ACTION_MOVE -> {
                 val stroke = active ?: return true
+                if (strokeIsTapCandidate && hypot(event.x - downX, event.y - downY) > tapSlop) {
+                    strokeIsTapCandidate = false
+                }
                 val history = event.historySize
                 for (i in 0 until history) {
                     stroke.append(event.getHistoricalX(i), event.getHistoricalY(i))
@@ -121,6 +144,14 @@ class DrawingCanvasView(
             MotionEvent.ACTION_UP -> {
                 val stroke = active ?: return true
                 stroke.append(event.x, event.y)
+                val detector = doubleTapDetector
+                if (detector != null && strokeIsTapCandidate && strokeIsTap(stroke, tapSlop)) {
+                    active = null
+                    activePath.reset()
+                    detector.onTap(event.x, event.y)
+                    invalidate()
+                    return true
+                }
                 finished.add(stroke)
                 appendStroke(inkPath, stroke)
                 active = null

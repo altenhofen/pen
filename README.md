@@ -37,7 +37,7 @@ Enable **pen ink** in Android’s on-screen keyboard list, then focus a text fie
 - **Ink canvas.** Write with an active stylus. Finger and passive pen are off until you turn on **Finger and passive pen** in settings. Keys at the bottom still accept a finger.
 - **Settle pause.** After you lift the pen, the canvas waits (default 600 ms, range 300–1200 ms) so a jittery lift does not cut a letter in half. Then the ink clears and the best match is inserted.
 - **Suggestion strip.** Up to five alternatives. The inserted guess is shown in bold. Tap another chip to replace the last insert when it is still the text before the cursor.
-- **space**, **⌫**, **↵.** Space inserts a space. Backspace deletes and, if you do it soon after a guess, treats that guess as wrong. Enter runs the field’s action (or a newline).
+- **space**, **⌫**, **↵.** Space inserts a space. Double-tap the ink canvas (two quick taps without drawing) inserts a space too. Backspace deletes and, if you do it soon after a guess, treats that guess as wrong. Enter runs the field’s action (or a newline).
 - **Model status.** While the handwriting model downloads you see **Downloading handwriting model**. If the model cannot run you see **Offline, using calibration**.
 - **Private fields.** Password fields, and apps that opt out of personalized learning, still receive text. They do not teach the recognizer.
 

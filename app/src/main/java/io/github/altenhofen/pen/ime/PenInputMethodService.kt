@@ -84,11 +84,13 @@ class PenInputMethodService : InputMethodService() {
         val canvas = DrawingCanvasView(
             this,
             acceptsTool = { StylusGate.acceptsIme(it, activeSettings.allowFingerInput) },
+            doubleTapForSpace = true,
         )
         canvas.isFocusable = true
         canvas.isFocusableInTouchMode = true
         canvas.configure(activeSettings.capture())
         canvas.setOnGlyphSettledListener(::onGlyph)
+        canvas.setOnDoubleTapListener { onKey(InkKey.Space) }
         val view = InkKeyboardView(
             this,
             canvas,
