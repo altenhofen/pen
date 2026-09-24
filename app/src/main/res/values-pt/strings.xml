@@ -34,6 +34,10 @@
     <string name="action_unlock">Desbloquear</string>
     <string name="calibrate_title">Calibrar</string>
     <string name="calibrate_pick_prompt">Selecione os caracteres para treinar</string>
+    <string name="calibrate_section_digits">Dígitos</string>
+    <string name="calibrate_section_uppercase">Maiúsculas</string>
+    <string name="calibrate_section_lowercase">Minúsculas</string>
+    <string name="calibrate_section_math">Matemática</string>
     <string name="action_select_all">Selecionar todos</string>
     <string name="action_select_none">Selecionar nenhum</string>
     <string name="action_start">Iniciar</string>

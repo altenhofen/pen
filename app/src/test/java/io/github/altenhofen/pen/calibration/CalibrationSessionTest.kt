@@ -104,6 +104,24 @@ class SelectedGlyphsTest {
     fun mixedSetFollowsAllOrder() {
         assertEquals(listOf('0', 'A', 'z'), SelectedGlyphs.of(setOf('z', '0', 'A'))?.labels)
     }
+
+    @Test
+    fun mathMixedSetFollowsAllOrder() {
+        assertEquals(
+            listOf('0', 'z', '\u03C0'),
+            SelectedGlyphs.of(setOf('\u03C0', 'z', '0'))?.labels,
+        )
+    }
+
+    @Test
+    fun allIsDistinctBmpConcatenation() {
+        assertEquals(
+            CalibrateGlyphs.DIGITS + CalibrateGlyphs.UPPER + CalibrateGlyphs.LOWER + CalibrateGlyphs.MATH,
+            CalibrateGlyphs.ALL,
+        )
+        assertEquals(CalibrateGlyphs.ALL.size, CalibrateGlyphs.ALL.distinct().size)
+        assertTrue(CalibrateGlyphs.ALL.all { it.code <= Char.MAX_VALUE.code })
+    }
 }
 
 class CalibrationMinigameTest {
@@ -112,6 +130,20 @@ class CalibrationMinigameTest {
         val game = CalibrationMinigame()
         game.start()
         assertTrue(game.phase() is GlyphCalibrationPhase.PickGlyphs)
+    }
+
+    @Test
+    fun toggleIgnoresCharsOutsideAllAndStartsWithPi() {
+        val game = CalibrationMinigame()
+        game.toggle('\u0000')
+        game.toggle('-')
+        val picking = game.phase() as GlyphCalibrationPhase.PickGlyphs
+        assertEquals(emptySet<Char>(), picking.selected)
+
+        game.toggle('\u03C0')
+        game.start()
+        val writing = game.phase() as GlyphCalibrationPhase.WriteGlyphs
+        assertEquals('\u03C0', writing.session.currentLabel)
     }
 }
 

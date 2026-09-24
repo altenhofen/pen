@@ -1,6 +1,6 @@
 # Calibration
 
-Calibration is the training minigame behind `Calibrate` on Pen settings. It first shows a grid of `0-9`, `A-Z`, and `a-z`. The user selects glyphs, then taps `Start`. The writing canvas fills the screen and shows the current character as a large watermark. The user may draw any number of examples. After each drawing settles, the canvas clears like the IME ink canvas and that stroke becomes a sample saved right away. `Next` moves on once at least one sample exists for the current glyph. Saved samples add to earlier calibrations for the same glyph instead of replacing them. `Cancel` keeps every glyph already confirmed with `Next`. Rotating the screen keeps the session. That canvas is not the IME.
+Calibration is the training minigame behind `Calibrate` on Pen settings. It first shows a grid of `0-9`, `A-Z`, `a-z`, and math symbols (`+`, `−`, `×`, `÷`, and the rest of that section), under the headers `Digits`, `Uppercase`, `Lowercase`, and `Math`. The user selects glyphs, then taps `Start`. The writing canvas fills the screen and shows the current character as a large watermark. The user may draw any number of examples. After each drawing settles, the canvas clears like the IME ink canvas and that stroke becomes a sample saved right away. `Next` moves on once at least one sample exists for the current glyph. Saved samples add to earlier calibrations for the same glyph instead of replacing them. `Cancel` keeps every glyph already confirmed with `Next`. Rotating the screen keeps the session. That canvas is not the IME.
 
 ## Sub-features
 
