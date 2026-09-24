@@ -81,16 +81,12 @@ class PenInputMethodService : InputMethodService() {
     }
 
     override fun onCreateInputView(): View {
-        val canvas = DrawingCanvasView(
-            this,
-            acceptsTool = { StylusGate.acceptsIme(it, activeSettings.allowFingerInput) },
-        )
+        val canvas = DrawingCanvasView(this)
         canvas.isFocusable = true
         canvas.isFocusableInTouchMode = true
-        canvas.configure(activeSettings.capture())
+        applyImeCanvasPolicy(canvas)
         canvas.setOnGlyphSettledListener(::onGlyph)
         canvas.setOnDoubleTapListener { onKey(InkKey.Space) }
-        canvas.setDoubleTapForSpaceEnabled(activeSettings.doubleTapForSpace)
         val view = InkKeyboardView(
             this,
             canvas,
@@ -101,6 +97,18 @@ class PenInputMethodService : InputMethodService() {
         view.showModelState(inkModel.state)
         keyboard = view
         return view
+    }
+
+    private fun applyImeCanvasPolicy(canvas: DrawingCanvasView) {
+        val settings = activeSettings
+        canvas.configure(settings.capture())
+        canvas.configureImePointers(
+            acceptsPointer = {
+                StylusGate.acceptsImePointer(it, settings.allowFingerInput, settings.doubleTapForSpace)
+            },
+            mayInk = { StylusGate.acceptsIme(it, settings.allowFingerInput) },
+        )
+        canvas.setDoubleTapForSpaceEnabled(settings.doubleTapForSpace)
     }
 
     private fun onGlyph(strokes: List<Stroke>) {
@@ -279,8 +287,7 @@ class PenInputMethodService : InputMethodService() {
         currentInputConnection?.finishComposingText()
         activeSettings = settings.readBlocking()
         useResolvedInkLanguage()
-        keyboard?.canvas?.configure(activeSettings.capture())
-        keyboard?.canvas?.setDoubleTapForSpaceEnabled(activeSettings.doubleTapForSpace)
+        keyboard?.canvas?.let { applyImeCanvasPolicy(it) }
         keyboard?.showSuggestions(emptyList(), null)
         committed = null
         trailingAutoSpace = false

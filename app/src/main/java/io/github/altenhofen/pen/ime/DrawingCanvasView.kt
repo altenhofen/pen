@@ -39,6 +39,7 @@ class DrawingCanvasView(
     private var downX = 0f
     private var downY = 0f
     private var strokeIsTapCandidate = true
+    private var activeToolType = MotionEvent.TOOL_TYPE_UNKNOWN
 
     fun setOnGlyphSettledListener(listener: OnGlyphSettledListener?) {
         settledListener = listener
@@ -52,6 +53,14 @@ class DrawingCanvasView(
     fun setDoubleTapForSpaceEnabled(enabled: Boolean) {
         doubleTapEnabled = enabled
         rebuildDoubleTapDetector()
+    }
+
+    private var acceptsPointerTool: (Int) -> Boolean = acceptsTool
+    private var mayInkPointer: (Int) -> Boolean = acceptsTool
+
+    fun configureImePointers(acceptsPointer: (Int) -> Boolean, mayInk: (Int) -> Boolean) {
+        acceptsPointerTool = acceptsPointer
+        mayInkPointer = mayInk
     }
 
     private fun rebuildDoubleTapDetector() {
@@ -121,13 +130,14 @@ class DrawingCanvasView(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (!acceptsTool(event.getToolType(0))) {
+        val toolType = event.getToolType(0)
+        if (!acceptsPointerTool(toolType)) {
             return false
         }
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 settleHandler.removeCallbacks(settleRunnable)
-                doubleTapDetector?.cancel()
+                activeToolType = toolType
                 downX = event.x
                 downY = event.y
                 strokeIsTapCandidate = true
@@ -142,6 +152,13 @@ class DrawingCanvasView(
                 val stroke = active ?: return true
                 if (strokeIsTapCandidate && hypot(event.x - downX, event.y - downY) > tapSlop) {
                     strokeIsTapCandidate = false
+                    if (!mayInkPointer(activeToolType)) {
+                        doubleTapDetector?.cancel()
+                        active = null
+                        activePath.reset()
+                        invalidate()
+                        return true
+                    }
                 }
                 val history = event.historySize
                 for (i in 0 until history) {
@@ -160,6 +177,13 @@ class DrawingCanvasView(
                     active = null
                     activePath.reset()
                     detector.onTap(event.x, event.y)
+                    invalidate()
+                    return true
+                }
+                if (!mayInkPointer(activeToolType)) {
+                    doubleTapDetector?.cancel()
+                    active = null
+                    activePath.reset()
                     invalidate()
                     return true
                 }

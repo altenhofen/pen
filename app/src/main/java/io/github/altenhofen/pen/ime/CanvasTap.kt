@@ -11,19 +11,13 @@ fun interface OnDoubleTapListener {
 internal fun strokeIsTap(stroke: Stroke, slopPx: Float): Boolean {
     val points = stroke.points()
     if (points.isEmpty()) return false
-    if (points.size > 12) return false
-    var minX = points[0].x
-    var maxX = points[0].x
-    var minY = points[0].y
-    var maxY = points[0].y
-    for (i in 1 until points.size) {
-        val p = points[i]
-        minX = minOf(minX, p.x)
-        maxX = maxOf(maxX, p.x)
-        minY = minOf(minY, p.y)
-        maxY = maxOf(maxY, p.y)
+    if (points.size > 48) return false
+    val relaxed = slopPx * 2f
+    val origin = points.first()
+    for (p in points) {
+        if (hypot(p.x - origin.x, p.y - origin.y) > relaxed) return false
     }
-    return maxX - minX <= slopPx && maxY - minY <= slopPx
+    return true
 }
 
 internal class DoubleTapDetector(
@@ -56,7 +50,7 @@ internal class DoubleTapDetector(
         fun fromView(view: android.view.View, onDoubleTap: () -> Unit): DoubleTapDetector {
             val config = ViewConfiguration.get(view.context)
             return DoubleTapDetector(
-                config.scaledTouchSlop.toFloat(),
+                config.scaledDoubleTapSlop.toFloat(),
                 ViewConfiguration.getDoubleTapTimeout(),
                 onDoubleTap,
             )

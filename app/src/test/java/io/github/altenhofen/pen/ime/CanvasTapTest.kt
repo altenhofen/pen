@@ -35,6 +35,19 @@ class CanvasTapTest {
     }
 
     @Test
+    fun jitteryFingerStrokeCanStillBeTap() {
+        val stroke = Stroke()
+        var x = 100f
+        var y = 100f
+        repeat(20) {
+            stroke.append(x, y)
+            x += if (it % 2 == 0) 1f else -1f
+            y += 0.5f
+        }
+        assertTrue(strokeIsTap(stroke, 24f))
+    }
+
+    @Test
     fun slowSecondTapDoesNotFire() {
         var fired = 0
         val detector = DoubleTapDetector(24f, 300, { fired++ })
