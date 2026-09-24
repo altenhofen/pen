@@ -54,6 +54,7 @@ class MotorSettingsTest {
             chosen.allowFingerInput,
             chosen.spaceAfterFullWord,
             chosen.recognizeSpacesInHandwriting,
+            chosen.doubleTapForSpace,
             chosen.handwriting.stored(),
         )
         assertEquals("pt-BR", chosen.handwriting.stored())

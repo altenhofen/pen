@@ -37,7 +37,7 @@ Enable **pen ink** in Android’s on-screen keyboard list, then focus a text fie
 - **Ink canvas.** Write with an active stylus. Finger and passive pen are off until you turn on **Finger and passive pen** in settings. Keys at the bottom still accept a finger.
 - **Settle pause.** After you lift the pen, the canvas waits (default 600 ms, range 300–1200 ms) so a jittery lift does not cut a letter in half. Then the ink clears and the best match is inserted.
 - **Suggestion strip.** Up to five alternatives. The inserted guess is shown in bold. Tap another chip to replace the last insert when it is still the text before the cursor.
-- **space**, **⌫**, **↵.** Space inserts a space. Backspace deletes and, if you do it soon after a guess, treats that guess as wrong. Enter runs the field’s action (or a newline).
+- **space**, **⌫**, **↵.** Space inserts a space. Double-tap the ink canvas (two quick taps without drawing) inserts a space too. Backspace deletes and, if you do it soon after a guess, treats that guess as wrong. Enter runs the field’s action (or a newline).
 - **Model status.** While the handwriting model downloads you see **Downloading handwriting model**. If the model cannot run you see **Offline, using calibration**.
 - **Private fields.** Password fields, and apps that opt out of personalized learning, still receive text. They do not teach the recognizer.
 
@@ -47,6 +47,7 @@ Open the **pen** app (or the keyboard’s settings entry). The screen title is *
 
 - **Add space after full word.** After a guess longer than one character, insert a space. A following punctuation mark takes that space and puts it after the mark. Off by default.
 - **Recognize spaces in handwriting.** When on, gaps the word model sees become spaces. When off, one settled ink group is treated as one token (spaces from the model are stripped). Off by default.
+- **Double-tap for space.** When on, two quick taps on the ink canvas insert a space. On by default.
 - **Settle window.** 300–1200 ms. Default 600 ms. Also used on the Calibrate and My words canvases.
 - **Stroke width.** 2.0–16.0 dp. Default 6.0 dp.
 - **Finger and passive pen.** Allow touch on the *keyboard* ink area. Off by default. Calibrate and My words training already accept finger, stylus, and mouse.

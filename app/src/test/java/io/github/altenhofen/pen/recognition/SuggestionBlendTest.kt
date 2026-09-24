@@ -49,6 +49,12 @@ class SuggestionBlendTest {
     }
 
     @Test
+    fun templatePrefersAccentedInkOverPlainBaseLetter() {
+        val glyph = glyphResult(trained('e'), seed('l'), gap = 0.3f)
+        assertEquals(listOf("é", "e"), blend(listOf("e", "é"), glyph))
+    }
+
+    @Test
     fun templateNeverInjectsCandidatesTheInkModelDidNotPropose() {
         val glyph = glyphResult(trained('w'), seed('o'), gap = 0.3f)
         assertEquals(listOf("o", "0", "x"), blend(listOf("o", "0", "x"), glyph))

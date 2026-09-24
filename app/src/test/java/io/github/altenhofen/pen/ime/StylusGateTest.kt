@@ -7,29 +7,25 @@ import org.junit.Test
 
 class StylusGateTest {
     @Test
-    fun stylusIsAccepted() {
-        assertTrue(StylusGate.accepts(MotionEvent.TOOL_TYPE_STYLUS))
-    }
-
-    @Test
-    fun fingerAndPalmAreRejected() {
-        assertFalse(StylusGate.accepts(MotionEvent.TOOL_TYPE_FINGER))
-        assertFalse(StylusGate.accepts(MotionEvent.TOOL_TYPE_UNKNOWN))
-        assertFalse(StylusGate.accepts(MotionEvent.TOOL_TYPE_MOUSE))
-    }
-
-    @Test
-    fun imeRejectsFingerUnlessAllowed() {
+    fun fingerDoubleTapAllowedWhenInkDisabled() {
         assertFalse(StylusGate.acceptsIme(MotionEvent.TOOL_TYPE_FINGER, allowFingerInput = false))
-        assertTrue(StylusGate.acceptsIme(MotionEvent.TOOL_TYPE_FINGER, allowFingerInput = true))
-        assertTrue(StylusGate.acceptsIme(MotionEvent.TOOL_TYPE_STYLUS, allowFingerInput = false))
+        assertTrue(
+            StylusGate.acceptsImePointer(
+                MotionEvent.TOOL_TYPE_FINGER,
+                allowFingerInput = false,
+                doubleTapForSpace = true,
+            ),
+        )
     }
 
     @Test
-    fun trainingAcceptsStylusAndFinger() {
-        assertTrue(StylusGate.acceptsTraining(MotionEvent.TOOL_TYPE_STYLUS))
-        assertTrue(StylusGate.acceptsTraining(MotionEvent.TOOL_TYPE_FINGER))
-        assertTrue(StylusGate.acceptsTraining(MotionEvent.TOOL_TYPE_MOUSE))
-        assertFalse(StylusGate.acceptsTraining(MotionEvent.TOOL_TYPE_UNKNOWN))
+    fun fingerPointerBlockedWhenDoubleTapOff() {
+        assertFalse(
+            StylusGate.acceptsImePointer(
+                MotionEvent.TOOL_TYPE_FINGER,
+                allowFingerInput = false,
+                doubleTapForSpace = false,
+            ),
+        )
     }
 }

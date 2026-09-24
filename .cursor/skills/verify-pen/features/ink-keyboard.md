@@ -1,10 +1,11 @@
 # Ink keyboard
 
-After pen is installed, Android keyboard settings lists an input method named `pen ink`. The row is off until the user turns it on. The launcher settings screen does not show the IME ink canvas.
+After pen is installed, Android keyboard settings lists an input method named `pen ink`. The row is off until the user turns it on. The launcher settings screen does not show the IME ink canvas. On the IME ink canvas, two quick taps without drawing insert a space when `Double-tap for space` is on in Pen settings.
 
 ## Sub-features
 
 - `ink-keyboard-listed` shows `pen ink` on the system on-screen keyboard list.
+- `ink-keyboard-double-tap-space` inserts a space after two quick taps on the IME canvas (manual only; not driven by adb in this harness).
 
 ## How to get to it (user POV)
 

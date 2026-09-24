@@ -17,7 +17,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * The plaintext body of a format v4 archive, before Deflate and before encryption.
+ * The plaintext body of a format v5 archive, before Deflate and before encryption.
  *
  * ```
  * varint sampleCount            glyph samples per prototype vector
@@ -27,6 +27,7 @@ import kotlin.math.roundToInt
  * u8     allowFingerInput
  * u8     spaceAfterFullWord
  * u8     recognizeSpacesInHandwriting
+ * u8     doubleTapForSpace            (format v5+)
  * text   handwritingLanguage tag, empty when following the app locale
  * varint clusterCount
  *   ...
@@ -61,6 +62,7 @@ internal object ProfileBinaryCodec {
         writer.byte(if (profile.settings.allowFingerInput) 1 else 0)
         writer.byte(if (profile.settings.spaceAfterFullWord) 1 else 0)
         writer.byte(if (profile.settings.recognizeSpacesInHandwriting) 1 else 0)
+        writer.byte(if (profile.settings.doubleTapForSpace) 1 else 0)
         writer.text(profile.settings.handwriting.stored() ?: "")
 
         val clusters = profile.prototypes.filterNot(::isPristineSeed)
@@ -94,11 +96,13 @@ internal object ProfileBinaryCodec {
         return out.toByteArray()
     }
 
-    fun decode(body: ByteArray): PenProfile = decodeBody(body, legacyAmbiguity = false)
+    fun decode(body: ByteArray): PenProfile = decodeBody(body, legacyAmbiguity = false, includeDoubleTap = true)
 
-    fun decodeLegacyBody(body: ByteArray): PenProfile = decodeBody(body, legacyAmbiguity = true)
+    fun decodeV4Body(body: ByteArray): PenProfile = decodeBody(body, legacyAmbiguity = false, includeDoubleTap = false)
 
-    private fun decodeBody(body: ByteArray, legacyAmbiguity: Boolean): PenProfile {
+    fun decodeLegacyBody(body: ByteArray): PenProfile = decodeBody(body, legacyAmbiguity = true, includeDoubleTap = false)
+
+    private fun decodeBody(body: ByteArray, legacyAmbiguity: Boolean, includeDoubleTap: Boolean): PenProfile {
         val reader = BinaryReader(body)
         val sampleCount = reader.count("sample count", MAX_SAMPLE_COUNT)
         val wordSampleCount = reader.count("word sample count", MAX_SAMPLE_COUNT)
@@ -114,12 +118,14 @@ internal object ProfileBinaryCodec {
             val allowFinger = reader.byte() != 0
             val spaceAfter = reader.byte() != 0
             val recognizeSpaces = reader.byte() != 0
+            val doubleTap = if (includeDoubleTap) reader.byte() != 0 else null
             MotorSettings.parse(
                 settle,
                 strokeWidth,
                 allowFinger,
                 spaceAfter,
                 recognizeSpaces,
+                doubleTap,
                 handwritingTag(reader.text()),
             )
         }
