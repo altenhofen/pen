@@ -29,17 +29,18 @@ internal class DoubleTapDetector(
     private var lastX = 0f
     private var lastY = 0f
 
-    fun onTap(x: Float, y: Float, nowMs: Long = SystemClock.uptimeMillis()) {
+    fun onTap(x: Float, y: Float, nowMs: Long = SystemClock.uptimeMillis()): Boolean {
         val withinTime = lastTapAt > 0L && nowMs - lastTapAt <= timeoutMs
         val withinDistance = hypot(x - lastX, y - lastY) <= slopPx
         if (withinTime && withinDistance) {
             lastTapAt = 0L
             onDoubleTap()
-        } else {
-            lastTapAt = nowMs
-            lastX = x
-            lastY = y
+            return true
         }
+        lastTapAt = nowMs
+        lastX = x
+        lastY = y
+        return false
     }
 
     fun cancel() {

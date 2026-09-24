@@ -27,10 +27,10 @@ class CanvasTapTest {
     fun doubleTapFiresOnceWithinWindow() {
         var fired = 0
         val detector = DoubleTapDetector(24f, 300, { fired++ })
-        detector.onTap(50f, 50f, 1_000L)
-        detector.onTap(52f, 51f, 1_100L)
+        assertTrue(!detector.onTap(50f, 50f, 1_000L))
+        assertTrue(detector.onTap(52f, 51f, 1_100L))
         assertTrue(fired == 1)
-        detector.onTap(52f, 51f, 1_150L)
+        assertTrue(!detector.onTap(52f, 51f, 1_150L))
         assertTrue(fired == 1)
     }
 
@@ -51,8 +51,8 @@ class CanvasTapTest {
     fun slowSecondTapDoesNotFire() {
         var fired = 0
         val detector = DoubleTapDetector(24f, 300, { fired++ })
-        detector.onTap(50f, 50f, 1_000L)
-        detector.onTap(52f, 51f, 1_500L)
+        assertTrue(!detector.onTap(50f, 50f, 1_000L))
+        assertTrue(!detector.onTap(52f, 51f, 1_500L))
         assertTrue(fired == 0)
     }
 }
