@@ -50,6 +50,8 @@ internal class CalibrationMinigame {
         return active.recordInk(strokes)
     }
 
+    fun payloadForCurrentLabel(): CalibrationPayload? = session?.payloadForCurrentLabel()
+
     fun next(): CalibrationEvent {
         val active = session ?: return CalibrationEvent.Ignored
         if (complete) return CalibrationEvent.Ignored

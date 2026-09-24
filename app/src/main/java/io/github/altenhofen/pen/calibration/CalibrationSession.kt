@@ -47,6 +47,18 @@ internal class CalibrationSession private constructor(
         return if (recorded) CalibrationEvent.Recorded else CalibrationEvent.Ignored
     }
 
+    fun payloadForCurrentLabel(): CalibrationPayload? {
+        val label = currentLabel ?: return null
+        val vectors = samples.getValue(label)
+        if (vectors.isEmpty()) return null
+        return CalibrationPayload(
+            sessionId,
+            vectors.mapIndexed { index, vector ->
+                PrototypeCluster(ClusterId.training(label, sessionId, index), label, vector)
+            },
+        )
+    }
+
     fun advanceToNextLabel(): CalibrationEvent {
         val label = currentLabel ?: return CalibrationEvent.Ignored
         if (!canAdvance) return CalibrationEvent.Ignored

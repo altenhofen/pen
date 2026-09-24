@@ -57,6 +57,18 @@ internal class GestureCalibrationSession private constructor(
         return if (recorded) GestureCalibrationEvent.Recorded else GestureCalibrationEvent.Ignored
     }
 
+    fun payloadForCurrentAction(): GestureCalibrationPayload? {
+        val action = currentAction ?: return null
+        val vectors = samples.getValue(action)
+        if (vectors.isEmpty()) return null
+        return GestureCalibrationPayload(
+            sessionId,
+            vectors.mapIndexed { index, vector ->
+                GestureCluster(ClusterId.trainingGesture(action.id, sessionId, index), action, vector)
+            },
+        )
+    }
+
     fun advanceToNextAction(): GestureCalibrationEvent {
         val action = currentAction ?: return GestureCalibrationEvent.Ignored
         if (!canAdvance) return GestureCalibrationEvent.Ignored
@@ -129,6 +141,8 @@ internal class GestureCalibrationMinigame {
         if (complete) return GestureCalibrationEvent.Ignored
         return active.recordInk(strokes)
     }
+
+    fun payloadForCurrentAction(): GestureCalibrationPayload? = session?.payloadForCurrentAction()
 
     fun next(): GestureCalibrationEvent {
         val active = session ?: return GestureCalibrationEvent.Ignored

@@ -1,6 +1,6 @@
 # Gesture calibration
 
-Gesture training is the top-level `Gestures` button on Pen settings (next to `My words`). The user picks text actions such as `Delete last word` or `Undo last gesture`. Each action needs at least five drawings before `Next` enables. Chips show sample progress like `Delete last word (0/5)`. Trained gestures are stored in the profile backup and run in the IME before glyph or word recognition when the match gap is confident.
+Gesture training is the top-level `Gestures` button on Pen settings (next to `My words`). The user picks text actions such as `Delete last word` or `Undo last gesture`. Each action needs at least five drawings before `Next` enables. After each drawing settles, the canvas clears like the IME ink canvas and that stroke is saved right away so the IME can pick it up without leaving the training screen. Chips show sample progress like `Delete last word (0/5)`. Trained gestures are stored in the profile backup and run in the IME before glyph or word recognition when the match gap is confident.
 
 ## Sub-features
 
