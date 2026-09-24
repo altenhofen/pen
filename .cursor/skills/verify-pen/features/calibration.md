@@ -1,6 +1,6 @@
 # Calibration
 
-Calibration is the training minigame behind `Calibrate` on Pen settings. It first shows a grid of `0-9`, `A-Z`, `a-z`, and math symbols (`+`, `−`, `×`, `÷`, and the rest of that section), under the headers `Digits`, `Uppercase`, `Lowercase`, and `Math`. The user selects glyphs, then taps `Start`. The writing canvas fills the screen and shows the current character as a large watermark. The user may draw any number of examples. After each drawing settles, the canvas clears like the IME ink canvas and that stroke becomes a sample saved right away. `Next` moves on once at least one sample exists for the current glyph. Saved samples add to earlier calibrations for the same glyph instead of replacing them. `Cancel` keeps every glyph already confirmed with `Next`. Rotating the screen keeps the session. That canvas is not the IME.
+Calibration is the training minigame behind `Calibrate` on Pen settings. It first shows a grid of `0-9`, `A-Z`, `a-z`, and math symbols (`+`, `−`, `×`, `÷`, and the rest of that section), under the headers `Digits`, `Uppercase`, `Lowercase`, and `Math`. The user selects glyphs, then taps `Start`. The writing canvas fills the screen. The current character is in the title `Now writing 0`, not as a canvas watermark. The user may draw any number of examples. After each drawing settles, the canvas clears like the IME ink canvas and that stroke becomes a sample saved right away. `Next` moves on once at least one sample exists for the current glyph. Saved samples add to earlier calibrations for the same glyph instead of replacing them. `Cancel` keeps samples already saved on settle, including the current glyph. Rotating the screen keeps the session. That canvas is not the IME.
 
 ## Sub-features
 
@@ -29,6 +29,6 @@ Preconditions:
 
 - Tap the innermost clickable ancestor of `Calibrate`. A regex from the first clickable node can hit the wrong button.
 - `Start` is not clickable until at least one glyph is selected. Tap `0` first.
-- Finger strokes work on this canvas. The IME canvas rejects fingers until the user turns on `Finger and passive pen` on Pen settings.
+- Finger strokes follow `Finger and passive pen`, the same gate as the IME ink canvas.
 - Completing ink and `Next` is optional for verification. Proof is the write screen after Start.
 - This screen is not the IME. Do not look for `pen ink` here.

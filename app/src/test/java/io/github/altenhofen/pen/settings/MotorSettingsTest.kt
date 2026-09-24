@@ -21,6 +21,7 @@ class MotorSettingsTest {
     fun imeTogglesDefaultOff() {
         assertFalse(MotorSettings.Default.spaceAfterFullWord)
         assertFalse(MotorSettings.Default.recognizeSpacesInHandwriting)
+        assertEquals(SpaceAfterSuggestion.Off, MotorSettings.Default.spaceAfterSuggestion)
     }
 
     @Test
@@ -29,6 +30,7 @@ class MotorSettingsTest {
         assertEquals(900L, parsed.settleMillis)
         assertEquals(6f, parsed.strokeWidthDp)
         assertEquals(CaptureStyle(900L, 6f), parsed.capture())
+        assertEquals(SpaceAfterSuggestion.Off, parsed.spaceAfterSuggestion)
     }
 
     @Test
@@ -56,8 +58,34 @@ class MotorSettingsTest {
             chosen.recognizeSpacesInHandwriting,
             chosen.doubleTapForSpace,
             chosen.handwriting.stored(),
+            chosen.spaceAfterSuggestion.stored(),
         )
         assertEquals("pt-BR", chosen.handwriting.stored())
         assertEquals(chosen, reread)
+    }
+
+    @Test
+    fun spaceAfterSuggestionSurvivesAStoreRoundTrip() {
+        val chosen = MotorSettings.Default.withSpaceAfterSuggestion(SpaceAfterSuggestion.Off)
+        val reread = MotorSettings.parse(
+            chosen.settleMillis,
+            chosen.strokeWidthDp,
+            chosen.allowFingerInput,
+            chosen.spaceAfterFullWord,
+            chosen.recognizeSpacesInHandwriting,
+            chosen.doubleTapForSpace,
+            chosen.handwriting.stored(),
+            chosen.spaceAfterSuggestion.stored(),
+        )
+        assertEquals(SpaceAfterSuggestion.Off, reread.spaceAfterSuggestion)
+        assertEquals(chosen, reread)
+        assertEquals(
+            SpaceAfterSuggestion.On,
+            MotorSettings.parse(null, null, spaceAfterSuggestion = "on").spaceAfterSuggestion,
+        )
+        assertEquals(
+            SpaceAfterSuggestion.Off,
+            MotorSettings.parse(null, null, spaceAfterSuggestion = "garbage").spaceAfterSuggestion,
+        )
     }
 }

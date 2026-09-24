@@ -16,6 +16,7 @@ import io.github.altenhofen.pen.recognition.seedClusters
 import io.github.altenhofen.pen.settings.HandwritingLanguage
 import io.github.altenhofen.pen.settings.InkLanguage
 import io.github.altenhofen.pen.settings.MotorSettings
+import io.github.altenhofen.pen.settings.SpaceAfterSuggestion
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -32,6 +33,7 @@ class ProfileBinaryCodecTest {
             .withStrokeWidthDp(5.5f)
             .withAllowFingerInput(true)
             .withSpaceAfterFullWord(true)
+            .withSpaceAfterSuggestion(SpaceAfterSuggestion.Off)
             .withRecognizeSpacesInHandwriting(true)
             .withDoubleTapForSpace(false)
         val decoded = roundTrip(profileOf(settings = tuned))
@@ -39,8 +41,23 @@ class ProfileBinaryCodecTest {
         assertEquals(5.5f, decoded.settings.strokeWidthDp)
         assertEquals(true, decoded.settings.allowFingerInput)
         assertEquals(true, decoded.settings.spaceAfterFullWord)
+        assertEquals(SpaceAfterSuggestion.Off, decoded.settings.spaceAfterSuggestion)
         assertEquals(true, decoded.settings.recognizeSpacesInHandwriting)
         assertEquals(false, decoded.settings.doubleTapForSpace)
+    }
+
+    @Test
+    fun roundTripKeepsSpaceAfterSuggestionOnAndSmart() {
+        assertEquals(
+            SpaceAfterSuggestion.On,
+            roundTrip(profileOf(settings = MotorSettings.Default.withSpaceAfterSuggestion(SpaceAfterSuggestion.On)))
+                .settings.spaceAfterSuggestion,
+        )
+        assertEquals(
+            SpaceAfterSuggestion.Smart,
+            roundTrip(profileOf(settings = MotorSettings.Default.withSpaceAfterSuggestion(SpaceAfterSuggestion.Smart)))
+                .settings.spaceAfterSuggestion,
+        )
     }
 
     @Test

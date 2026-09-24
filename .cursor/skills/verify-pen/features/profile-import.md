@@ -26,5 +26,5 @@ Preconditions:
 
 - Tap the clickable parent of `Import profile`, not `Export profile` above it.
 - Picker chrome is OEM DocumentsUI. It opens on the last folder used, so `Recent files` shows only on a fresh device. After the export drive it opens on `Downloads`. Proof keys on the package, not a folder title.
-- Completing a file pick is optional for this proof. `Imported` appears only after a chosen zip decodes.
+- Completing a file pick is optional for this proof. `Imported` appears only after a chosen archive decodes. A vault `.penbak` file asks for a passphrase. A legacy zip does not. A legacy zip restore clears My words because those archives do not carry that list.
 - The script sends Back after the dump so the picker does not linger.

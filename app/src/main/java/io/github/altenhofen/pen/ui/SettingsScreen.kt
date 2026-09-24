@@ -32,6 +32,7 @@ import io.github.altenhofen.pen.settings.AppLanguage
 import io.github.altenhofen.pen.settings.HandwritingLanguage
 import io.github.altenhofen.pen.settings.InkLanguage
 import io.github.altenhofen.pen.settings.MotorSettings
+import io.github.altenhofen.pen.settings.SpaceAfterSuggestion
 import java.util.Locale
 import kotlin.math.roundToLong
 
@@ -123,6 +124,28 @@ internal fun SettingsScreen(
                             onCheckedChange = { enabled ->
                                 onUpdate { settings -> settings.withSpaceAfterFullWord(enabled) }
                             },
+                        )
+                        LanguagePicker(
+                            label = stringResource(R.string.space_after_suggestion),
+                            options = SpaceAfterSuggestion.entries,
+                            selected = current.spaceAfterSuggestion,
+                            optionLabel = {
+                                when (it) {
+                                    SpaceAfterSuggestion.Off ->
+                                        stringResource(R.string.space_after_suggestion_off)
+                                    SpaceAfterSuggestion.On ->
+                                        stringResource(R.string.space_after_suggestion_on)
+                                    SpaceAfterSuggestion.Smart ->
+                                        stringResource(R.string.space_after_suggestion_smart)
+                                }
+                            },
+                            onPick = { choice ->
+                                onUpdate { settings -> settings.withSpaceAfterSuggestion(choice) }
+                            },
+                        )
+                        Text(
+                            stringResource(R.string.space_after_suggestion_hint),
+                            style = MaterialTheme.typography.bodySmall,
                         )
                         SettingSwitch(
                             title = stringResource(R.string.recognize_spaces_in_handwriting),

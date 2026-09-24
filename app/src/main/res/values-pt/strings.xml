@@ -1,7 +1,12 @@
 <resources>
     <string name="settings_title">Configurações da caneta</string>
     <string name="space_after_full_word">Espaço após palavra inteira</string>
-    <string name="space_after_full_word_hint">Depois de escolher ou escrever uma palavra inteira, insere um espaço automaticamente.</string>
+    <string name="space_after_full_word_hint">Depois de escrever uma palavra inteira, insere um espaço automaticamente.</string>
+    <string name="space_after_suggestion">Espaço após escolha de sugestão</string>
+    <string name="space_after_suggestion_hint">Depois de tocar numa sugestão. Desligado nunca insere espaço. Ligado sempre, salvo pontuação. Inteligente insere quando a escolha completa uma palavra, não quando ainda é um radical.</string>
+    <string name="space_after_suggestion_off">Desligado</string>
+    <string name="space_after_suggestion_on">Ligado</string>
+    <string name="space_after_suggestion_smart">Inteligente</string>
     <string name="recognize_spaces_in_handwriting">Reconhecer espaços na escrita</string>
     <string name="recognize_spaces_in_handwriting_hint">Ativado, lacunas entre palavras viram espaços. Desativado, um traço conta como uma palavra.</string>
     <string name="settle_window">Janela de estabilização</string>

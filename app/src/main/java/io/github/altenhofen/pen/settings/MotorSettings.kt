@@ -5,30 +5,34 @@ class MotorSettings private constructor(
     val strokeWidthDp: Float,
     val allowFingerInput: Boolean,
     val spaceAfterFullWord: Boolean,
+    val spaceAfterSuggestion: SpaceAfterSuggestion,
     val recognizeSpacesInHandwriting: Boolean,
     val doubleTapForSpace: Boolean,
     val handwriting: HandwritingLanguage,
 ) {
     fun withSettleMillis(value: Long): MotorSettings =
-        of(value, strokeWidthDp, allowFingerInput, spaceAfterFullWord, recognizeSpacesInHandwriting, doubleTapForSpace, handwriting)
+        of(value, strokeWidthDp, allowFingerInput, spaceAfterFullWord, spaceAfterSuggestion, recognizeSpacesInHandwriting, doubleTapForSpace, handwriting)
 
     fun withStrokeWidthDp(value: Float): MotorSettings =
-        of(settleMillis, value, allowFingerInput, spaceAfterFullWord, recognizeSpacesInHandwriting, doubleTapForSpace, handwriting)
+        of(settleMillis, value, allowFingerInput, spaceAfterFullWord, spaceAfterSuggestion, recognizeSpacesInHandwriting, doubleTapForSpace, handwriting)
 
     fun withAllowFingerInput(value: Boolean): MotorSettings =
-        of(settleMillis, strokeWidthDp, value, spaceAfterFullWord, recognizeSpacesInHandwriting, doubleTapForSpace, handwriting)
+        of(settleMillis, strokeWidthDp, value, spaceAfterFullWord, spaceAfterSuggestion, recognizeSpacesInHandwriting, doubleTapForSpace, handwriting)
 
     fun withSpaceAfterFullWord(value: Boolean): MotorSettings =
-        of(settleMillis, strokeWidthDp, allowFingerInput, value, recognizeSpacesInHandwriting, doubleTapForSpace, handwriting)
+        of(settleMillis, strokeWidthDp, allowFingerInput, value, spaceAfterSuggestion, recognizeSpacesInHandwriting, doubleTapForSpace, handwriting)
+
+    fun withSpaceAfterSuggestion(value: SpaceAfterSuggestion): MotorSettings =
+        of(settleMillis, strokeWidthDp, allowFingerInput, spaceAfterFullWord, value, recognizeSpacesInHandwriting, doubleTapForSpace, handwriting)
 
     fun withRecognizeSpacesInHandwriting(value: Boolean): MotorSettings =
-        of(settleMillis, strokeWidthDp, allowFingerInput, spaceAfterFullWord, value, doubleTapForSpace, handwriting)
+        of(settleMillis, strokeWidthDp, allowFingerInput, spaceAfterFullWord, spaceAfterSuggestion, value, doubleTapForSpace, handwriting)
 
     fun withDoubleTapForSpace(value: Boolean): MotorSettings =
-        of(settleMillis, strokeWidthDp, allowFingerInput, spaceAfterFullWord, recognizeSpacesInHandwriting, value, handwriting)
+        of(settleMillis, strokeWidthDp, allowFingerInput, spaceAfterFullWord, spaceAfterSuggestion, recognizeSpacesInHandwriting, value, handwriting)
 
     fun withHandwriting(value: HandwritingLanguage): MotorSettings =
-        of(settleMillis, strokeWidthDp, allowFingerInput, spaceAfterFullWord, recognizeSpacesInHandwriting, doubleTapForSpace, value)
+        of(settleMillis, strokeWidthDp, allowFingerInput, spaceAfterFullWord, spaceAfterSuggestion, recognizeSpacesInHandwriting, doubleTapForSpace, value)
 
     fun capture(): CaptureStyle = CaptureStyle(settleMillis, strokeWidthDp)
 
@@ -38,13 +42,15 @@ class MotorSettings private constructor(
             strokeWidthDp == other.strokeWidthDp &&
             allowFingerInput == other.allowFingerInput &&
             spaceAfterFullWord == other.spaceAfterFullWord &&
+            spaceAfterSuggestion == other.spaceAfterSuggestion &&
             recognizeSpacesInHandwriting == other.recognizeSpacesInHandwriting &&
             doubleTapForSpace == other.doubleTapForSpace &&
             handwriting == other.handwriting
 
     override fun hashCode(): Int =
-        ((((((settleMillis.hashCode() * 31 + strokeWidthDp.hashCode()) * 31 + allowFingerInput.hashCode()) * 31 +
-            spaceAfterFullWord.hashCode()) * 31 + recognizeSpacesInHandwriting.hashCode()) * 31 + doubleTapForSpace.hashCode()) * 31 +
+        (((((((settleMillis.hashCode() * 31 + strokeWidthDp.hashCode()) * 31 + allowFingerInput.hashCode()) * 31 +
+            spaceAfterFullWord.hashCode()) * 31 + spaceAfterSuggestion.hashCode()) * 31 +
+            recognizeSpacesInHandwriting.hashCode()) * 31 + doubleTapForSpace.hashCode()) * 31 +
             handwriting.hashCode())
 
     companion object {
@@ -54,7 +60,16 @@ class MotorSettings private constructor(
         const val MAX_STROKE_WIDTH_DP = 16f
         const val FIXED_AMBIGUITY_THRESHOLD = 0.15f
 
-        val Default: MotorSettings = MotorSettings(600L, 6f, false, false, false, true, HandwritingLanguage.FollowApp)
+        val Default: MotorSettings = MotorSettings(
+            600L,
+            6f,
+            false,
+            false,
+            SpaceAfterSuggestion.Default,
+            false,
+            true,
+            HandwritingLanguage.FollowApp,
+        )
 
         internal fun parse(
             settle: Long?,
@@ -64,11 +79,13 @@ class MotorSettings private constructor(
             recognizeSpaces: Boolean? = null,
             doubleTapForSpace: Boolean? = null,
             handwriting: String? = null,
+            spaceAfterSuggestion: String? = null,
         ): MotorSettings = of(
             settle ?: Default.settleMillis,
             width ?: Default.strokeWidthDp,
             allowFinger ?: Default.allowFingerInput,
             spaceAfterFullWord ?: Default.spaceAfterFullWord,
+            SpaceAfterSuggestion.parse(spaceAfterSuggestion),
             recognizeSpaces ?: Default.recognizeSpacesInHandwriting,
             doubleTapForSpace ?: Default.doubleTapForSpace,
             HandwritingLanguage.parse(handwriting),
@@ -88,6 +105,7 @@ class MotorSettings private constructor(
             width: Float,
             allowFinger: Boolean,
             spaceAfterFullWord: Boolean,
+            spaceAfterSuggestion: SpaceAfterSuggestion,
             recognizeSpaces: Boolean,
             doubleTapForSpace: Boolean,
             handwriting: HandwritingLanguage,
@@ -97,6 +115,7 @@ class MotorSettings private constructor(
                 .coerceIn(MIN_STROKE_WIDTH_DP, MAX_STROKE_WIDTH_DP),
             allowFinger,
             spaceAfterFullWord,
+            spaceAfterSuggestion,
             recognizeSpaces,
             doubleTapForSpace,
             handwriting,

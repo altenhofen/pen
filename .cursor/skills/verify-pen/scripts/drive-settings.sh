@@ -36,20 +36,26 @@ grep -q 'text="Set as default keyboard"' "$OUT/hierarchy.xml"
 grep -q 'text="My words"' "$OUT/hierarchy.xml"
 grep -q 'text="Gestures"' "$OUT/hierarchy.xml"
 grep -q 'Add space after full word' "$OUT/hierarchy.xml"
+grep -q 'Space after suggestion pick' "$OUT/hierarchy.xml"
+grep -q 'text="Off"' "$OUT/hierarchy.xml"
 grep -q 'Recognize spaces in handwriting' "$OUT/hierarchy.xml"
 grep -q 'Settle window' "$OUT/hierarchy.xml"
 grep -q 'Stroke width' "$OUT/hierarchy.xml"
-grep -q 'text="Finger and passive pen"' "$OUT/hierarchy.xml"
 adb -s "$SERIAL" exec-out screencap -p >"$OUT/screen.png"
 
 for _ in $(seq 1 8); do
-  if grep -q 'text="Export profile"' "$OUT/hierarchy.xml" && grep -q 'text="Import profile"' "$OUT/hierarchy.xml"; then
+  if grep -q 'text="Finger and passive pen"' "$OUT/hierarchy.xml" \
+    && grep -q 'text="Double-tap for space"' "$OUT/hierarchy.xml" \
+    && grep -q 'text="Export profile"' "$OUT/hierarchy.xml" \
+    && grep -q 'text="Import profile"' "$OUT/hierarchy.xml"; then
     break
   fi
   adb -s "$SERIAL" shell input swipe 540 1800 540 600 200
   sleep 1
   adb -s "$SERIAL" exec-out uiautomator dump /dev/tty >"$OUT/hierarchy.xml" 2>/dev/null || true
 done
+grep -q 'text="Finger and passive pen"' "$OUT/hierarchy.xml"
+grep -q 'text="Double-tap for space"' "$OUT/hierarchy.xml"
 grep -q 'text="Export profile"' "$OUT/hierarchy.xml"
 grep -q 'text="Import profile"' "$OUT/hierarchy.xml"
 echo "proof: $OUT"

@@ -12,12 +12,13 @@ import io.github.altenhofen.pen.recognition.WordMemory
 import io.github.altenhofen.pen.recognition.WordSample
 import io.github.altenhofen.pen.recognition.seedClusters
 import io.github.altenhofen.pen.settings.MotorSettings
+import io.github.altenhofen.pen.settings.SpaceAfterSuggestion
 import java.io.ByteArrayOutputStream
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * The plaintext body of a format v5 archive, before Deflate and before encryption.
+ * The plaintext body of a format v6 archive, before Deflate and before encryption.
  *
  * ```
  * varint sampleCount            glyph samples per prototype vector
@@ -28,6 +29,7 @@ import kotlin.math.roundToInt
  * u8     spaceAfterFullWord
  * u8     recognizeSpacesInHandwriting
  * u8     doubleTapForSpace            (format v5+)
+ * u8     spaceAfterSuggestion         (format v6+; 0 Off 1 On 2 Smart)
  * text   handwritingLanguage tag, empty when following the app locale
  * varint clusterCount
  *   ...
@@ -63,6 +65,7 @@ internal object ProfileBinaryCodec {
         writer.byte(if (profile.settings.spaceAfterFullWord) 1 else 0)
         writer.byte(if (profile.settings.recognizeSpacesInHandwriting) 1 else 0)
         writer.byte(if (profile.settings.doubleTapForSpace) 1 else 0)
+        writer.byte(SpaceAfterSuggestion.toByte(profile.settings.spaceAfterSuggestion))
         writer.text(profile.settings.handwriting.stored() ?: "")
 
         val clusters = profile.prototypes.filterNot(::isPristineSeed)
@@ -96,13 +99,24 @@ internal object ProfileBinaryCodec {
         return out.toByteArray()
     }
 
-    fun decode(body: ByteArray): PenProfile = decodeBody(body, legacyAmbiguity = false, includeDoubleTap = true)
+    fun decode(body: ByteArray): PenProfile =
+        decodeBody(body, legacyAmbiguity = false, includeDoubleTap = true, includeSpaceAfterSuggestion = true)
 
-    fun decodeV4Body(body: ByteArray): PenProfile = decodeBody(body, legacyAmbiguity = false, includeDoubleTap = false)
+    fun decodeV5Body(body: ByteArray): PenProfile =
+        decodeBody(body, legacyAmbiguity = false, includeDoubleTap = true, includeSpaceAfterSuggestion = false)
 
-    fun decodeLegacyBody(body: ByteArray): PenProfile = decodeBody(body, legacyAmbiguity = true, includeDoubleTap = false)
+    fun decodeV4Body(body: ByteArray): PenProfile =
+        decodeBody(body, legacyAmbiguity = false, includeDoubleTap = false, includeSpaceAfterSuggestion = false)
 
-    private fun decodeBody(body: ByteArray, legacyAmbiguity: Boolean, includeDoubleTap: Boolean): PenProfile {
+    fun decodeLegacyBody(body: ByteArray): PenProfile =
+        decodeBody(body, legacyAmbiguity = true, includeDoubleTap = false, includeSpaceAfterSuggestion = false)
+
+    private fun decodeBody(
+        body: ByteArray,
+        legacyAmbiguity: Boolean,
+        includeDoubleTap: Boolean,
+        includeSpaceAfterSuggestion: Boolean,
+    ): PenProfile {
         val reader = BinaryReader(body)
         val sampleCount = reader.count("sample count", MAX_SAMPLE_COUNT)
         val wordSampleCount = reader.count("word sample count", MAX_SAMPLE_COUNT)
@@ -119,6 +133,11 @@ internal object ProfileBinaryCodec {
             val spaceAfter = reader.byte() != 0
             val recognizeSpaces = reader.byte() != 0
             val doubleTap = if (includeDoubleTap) reader.byte() != 0 else null
+            val spaceAfterSuggestion = if (includeSpaceAfterSuggestion) {
+                SpaceAfterSuggestion.parseByte(reader.byte()).stored()
+            } else {
+                null
+            }
             MotorSettings.parse(
                 settle,
                 strokeWidth,
@@ -127,6 +146,7 @@ internal object ProfileBinaryCodec {
                 recognizeSpaces,
                 doubleTap,
                 handwritingTag(reader.text()),
+                spaceAfterSuggestion,
             )
         }
 
