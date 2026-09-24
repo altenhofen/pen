@@ -91,6 +91,14 @@ The keyboard list is a seventh drive.
 
 Proof is the dump containing `text="pen ink"` after `android.settings.INPUT_METHOD_SETTINGS`, plus the screenshot.
 
+Every screen is an eighth drive. It visits settings, My words, the glyph picker, the writing canvas, gesture actions, the export passphrase dialog, then reuses the export, import, default-keyboard, and ink-keyboard drives.
+
+```bash
+.cursor/skills/verify-pen/scripts/drive-screens.sh
+```
+
+Proof is one PNG per screen under `artifacts/screens/`. The file names are `settings.png`, `my-words.png`, `calibrate-picker.png`, `calibrate-canvas.png`, `gestures.png`, `export-passphrase.png`, `profile-export.png`, `profile-import.png`, `default-keyboard.png`, and `ink-keyboard.png`.
+
 Do not call Compose test APIs or `setContent` as a substitute. Do not treat `docs/PRD.md` controls as present unless the matching feature file lists them.
 
 ## Evidence
@@ -124,4 +132,5 @@ Kills the emulator pid stored in `/tmp/pen-verify/emulator.pid`, then `adb -s em
 | `scripts/drive-profile-export.sh` | Open the save sheet from `Export profile` and write proof under `artifacts/profile-export/`. |
 | `scripts/drive-profile-import.sh` | Open the document picker from `Import profile` and write proof under `artifacts/profile-import/`. |
 | `scripts/drive-ink-keyboard.sh` | Open on-screen keyboard settings and write proof under `artifacts/ink-keyboard/`. |
+| `scripts/drive-screens.sh` | Screenshot every reachable screen into `artifacts/screens/`. |
 | `scripts/cleanup.sh` | Stop the emulator this run started. Keep artifacts. |
