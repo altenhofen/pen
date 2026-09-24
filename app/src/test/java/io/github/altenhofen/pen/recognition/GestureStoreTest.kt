@@ -18,6 +18,18 @@ class GestureStoreTest {
     }
 
     @Test
+    fun removeTrainingBeforeFullCommitDropsOlderSessionClusters() {
+        val dao = RecordingGestureDao()
+        val store = GestureStore(dao)
+        store.commitTraining(payload(GestureAction.DeleteLine, "old-session", GestureAction.MIN_TRAINING_SAMPLES))
+        store.removeTraining(setOf(GestureAction.DeleteLine))
+        store.commitTraining(payload(GestureAction.DeleteLine, "new-session", GestureAction.MIN_TRAINING_SAMPLES))
+        val ids = store.load().map { it.id.value }
+        assertEquals(GestureAction.MIN_TRAINING_SAMPLES, ids.size)
+        assertEquals(true, ids.all { it.contains("new-session") })
+    }
+
+    @Test
     fun clearAllTrainingRemovesEveryCluster() {
         val dao = RecordingGestureDao()
         val store = GestureStore(dao)

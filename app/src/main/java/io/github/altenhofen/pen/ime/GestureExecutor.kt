@@ -101,19 +101,23 @@ internal class GestureExecutor(
     }
 
     private fun deleteLastWord(connection: InputConnection): Boolean {
-        val word = lastWord(connection) ?: return false
+        val before = connection.getTextBeforeCursor(256, 0)?.toString().orEmpty()
+        val trimmed = before.trimEnd()
+        val word = trailingWord(trimmed) ?: return false
+        val trailingSpaces = before.length - trimmed.length
         undo.record(connection)
-        connection.deleteSurroundingText(word.length, 0)
+        connection.deleteSurroundingText(word.length + trailingSpaces, 0)
         return true
     }
 
     private fun deleteLine(connection: InputConnection): Boolean {
-        val before = connection.getTextBeforeCursor(4096, 0)?.toString().orEmpty()
-        val after = connection.getTextAfterCursor(4096, 0)?.toString().orEmpty()
-        val lineStart = before.lastIndexOf('\n').let { if (it < 0) 0 else it + 1 }
-        val lineEnd = after.indexOf('\n').let { if (it < 0) after.length else it }
+        val before = connection.getTextBeforeCursor(8192, 0)?.toString().orEmpty()
+        val after = connection.getTextAfterCursor(8192, 0)?.toString().orEmpty()
+        val (deleteBefore, deleteAfter) = lineDeletionRange(before, after) ?: return false
         undo.record(connection)
-        connection.deleteSurroundingText(before.length - lineStart, lineEnd)
+        connection.beginBatchEdit()
+        connection.deleteSurroundingText(deleteBefore, deleteAfter)
+        connection.endBatchEdit()
         return true
     }
 
@@ -203,4 +207,17 @@ internal class GestureExecutor(
         val match = Regex("\\S+").findAll(trimmed).lastOrNull() ?: return null
         return match.value
     }
+}
+
+/**
+ * Text to remove around the cursor for [GestureAction.DeleteLine].
+ * Includes a trailing newline when the current line is not the last one in the field.
+ */
+internal fun lineDeletionRange(before: String, after: String): Pair<Int, Int>? {
+    val lineStartOffset = before.lastIndexOf('\n').let { if (it < 0) 0 else it + 1 }
+    val deleteBefore = before.length - lineStartOffset
+    val newlineIndex = after.indexOf('\n')
+    val deleteAfter = if (newlineIndex >= 0) newlineIndex + 1 else after.length
+    if (deleteBefore == 0 && deleteAfter == 0) return null
+    return deleteBefore to deleteAfter
 }

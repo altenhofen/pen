@@ -20,7 +20,7 @@ fun interface OnGlyphSettledListener {
 
 class DrawingCanvasView(
     context: Context,
-    private val acceptsTool: (toolType: Int) -> Boolean = StylusGate::accepts,
+    private val acceptsTouch: (MotionEvent) -> Boolean = { StylusGate.accepts(it.getToolType(0)) },
     private val autoSettle: Boolean = true,
     private val keepInkAfterSettle: Boolean = false,
 ) : View(context) {
@@ -35,7 +35,7 @@ class DrawingCanvasView(
     private val doubleTapTimeoutMs = ViewConfiguration.getDoubleTapTimeout()
     private val flushPendingTapRunnable = Runnable { flushPendingTap() }
     private var pendingTapStroke: Stroke? = null
-    private var pendingTapTool = MotionEvent.TOOL_TYPE_UNKNOWN
+    private var pendingTapMayInk = false
     private var pendingTapAt = 0L
     private var settleMillis = MotorSettings.Default.settleMillis
     private var prompt: String? = null
@@ -62,10 +62,10 @@ class DrawingCanvasView(
         rebuildDoubleTapDetector()
     }
 
-    private var acceptsPointerTool: (Int) -> Boolean = acceptsTool
-    private var mayInkPointer: (Int) -> Boolean = acceptsTool
+    private var acceptsPointerTool: (MotionEvent) -> Boolean = acceptsTouch
+    private var mayInkPointer: (MotionEvent) -> Boolean = acceptsTouch
 
-    fun configureImePointers(acceptsPointer: (Int) -> Boolean, mayInk: (Int) -> Boolean) {
+    fun configureImePointers(acceptsPointer: (MotionEvent) -> Boolean, mayInk: (MotionEvent) -> Boolean) {
         acceptsPointerTool = acceptsPointer
         mayInkPointer = mayInk
     }
@@ -93,10 +93,9 @@ class DrawingCanvasView(
     private fun flushPendingTap() {
         settleHandler.removeCallbacks(flushPendingTapRunnable)
         val stroke = pendingTapStroke ?: return
-        val tool = pendingTapTool
         pendingTapStroke = null
         pendingInkPath.reset()
-        if (!mayInkPointer(tool)) {
+        if (!pendingTapMayInk) {
             invalidate()
             return
         }
@@ -163,10 +162,10 @@ class DrawingCanvasView(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        val toolType = event.getToolType(0)
-        if (!acceptsPointerTool(toolType)) {
+        if (!acceptsPointerTool(event)) {
             return false
         }
+        val toolType = event.getToolType(0)
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 settleHandler.removeCallbacks(settleRunnable)
@@ -193,7 +192,7 @@ class DrawingCanvasView(
                 if (strokeIsTapCandidate && hypot(event.x - downX, event.y - downY) > tapSlop) {
                     strokeIsTapCandidate = false
                     flushPendingTap()
-                    if (!mayInkPointer(activeToolType)) {
+                    if (!mayInkPointer(event)) {
                         doubleTapDetector?.cancel()
                         active = null
                         activePath.reset()
@@ -223,7 +222,7 @@ class DrawingCanvasView(
                         return true
                     }
                     pendingTapStroke = stroke
-                    pendingTapTool = activeToolType
+                    pendingTapMayInk = mayInkPointer(event)
                     pendingTapAt = SystemClock.uptimeMillis()
                     pendingInkPath.reset()
                     appendStroke(pendingInkPath, stroke)
@@ -232,7 +231,7 @@ class DrawingCanvasView(
                     return true
                 }
                 flushPendingTap()
-                if (!mayInkPointer(activeToolType)) {
+                if (!mayInkPointer(event)) {
                     doubleTapDetector?.cancel()
                     active = null
                     activePath.reset()

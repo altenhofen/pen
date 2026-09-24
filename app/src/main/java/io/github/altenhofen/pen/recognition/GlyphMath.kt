@@ -1,5 +1,7 @@
 package io.github.altenhofen.pen.recognition
 
+import kotlin.math.abs
+import kotlin.math.acos
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
@@ -245,4 +247,54 @@ private fun localCost(left: FeatureVector, leftIndex: Int, right: FeatureVector,
         sum += delta * delta
     }
     return kotlin.math.sqrt(sum)
+}
+
+internal data class ShapeSignature(val strokeCount: Int, val closed: Boolean, val corners: Int)
+
+internal fun shapeSignature(vector: FeatureVector): ShapeSignature {
+    val points = ArrayList<Point2>(vector.sampleCount)
+    var x = 0f
+    var y = 0f
+    var strokes = 0
+    for (index in 0 until vector.sampleCount) {
+        if (vector[index, 2] >= 0.5f) {
+            strokes++
+            x = 0f
+            y = 0f
+        }
+        x += vector[index, 0]
+        y += vector[index, 1]
+        points.add(Point2(x, y))
+    }
+    val first = points.first()
+    val last = points.last()
+    val span = hypot(
+        points.maxOf { it.x } - points.minOf { it.x },
+        points.maxOf { it.y } - points.minOf { it.y },
+    ).coerceAtLeast(1e-4f)
+    val closed = hypot(last.x - first.x, last.y - first.y) / span <= 0.28f
+    return ShapeSignature(max(strokes, 1), closed, cornerCount(points))
+}
+
+internal fun shapeCompatible(sample: ShapeSignature, prototype: ShapeSignature): Boolean {
+    if (sample.strokeCount != prototype.strokeCount) return false
+    if (sample.closed != prototype.closed) return false
+    return abs(sample.corners - prototype.corners) <= 2
+}
+
+private fun cornerCount(points: List<Point2>): Int {
+    if (points.size < 3) return 0
+    var corners = 0
+    for (index in 1 until points.lastIndex) {
+        val ax = points[index].x - points[index - 1].x
+        val ay = points[index].y - points[index - 1].y
+        val bx = points[index + 1].x - points[index].x
+        val by = points[index + 1].y - points[index].y
+        val al = hypot(ax, ay)
+        val bl = hypot(bx, by)
+        if (al < 0.04f || bl < 0.04f) continue
+        val cos = ((ax * bx + ay * by) / (al * bl)).coerceIn(-1f, 1f)
+        if (acos(cos) > 0.7f) corners++
+    }
+    return corners
 }

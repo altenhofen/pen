@@ -143,6 +143,13 @@ internal abstract class PrototypeDatabase : RoomDatabase() {
                     .also { instance = it }
             }
         }
+
+        fun invalidate() {
+            synchronized(this) {
+                instance?.close()
+                instance = null
+            }
+        }
     }
 }
 

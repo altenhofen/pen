@@ -51,16 +51,18 @@ import kotlinx.coroutines.launch
 internal fun CalibrationMinigameScreen(
     recognizer: AdaptiveRecognizer,
     capture: CaptureStyle,
+    allowFingerInput: Boolean,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    GlyphCalibrationFlow(recognizer, capture, onDone, modifier.fillMaxSize())
+    GlyphCalibrationFlow(recognizer, capture, allowFingerInput, onDone, modifier.fillMaxSize())
 }
 
 @Composable
 private fun GlyphCalibrationFlow(
     recognizer: AdaptiveRecognizer,
     capture: CaptureStyle,
+    allowFingerInput: Boolean,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -86,6 +88,7 @@ private fun GlyphCalibrationFlow(
             sampleLine = stringResource(R.string.calibrate_samples_so_far, phase.session.sampleCount),
             sessionKey = phase.session.currentLabel,
             capture = capture,
+            allowFingerInput = allowFingerInput,
             canAdvance = phase.session.canAdvance,
             onSettled = { strokes ->
                 var payload: CalibrationPayload? = null
@@ -199,6 +202,7 @@ internal fun InkWritingPanel(
     sampleLine: String,
     sessionKey: Any?,
     capture: CaptureStyle,
+    allowFingerInput: Boolean,
     canAdvance: Boolean,
     onSettled: (List<Stroke>) -> Unit,
     onNext: (List<Stroke>) -> Unit,
@@ -206,14 +210,16 @@ internal fun InkWritingPanel(
     modifier: Modifier = Modifier,
 ) {
     val settled by rememberUpdatedState(onSettled)
+    val fingerInk by rememberUpdatedState(allowFingerInput)
     var canvas by remember { mutableStateOf<DrawingCanvasView?>(null) }
     Box(modifier = modifier.fillMaxSize()) {
         key(sessionKey) {
             AndroidView(
                 factory = { context ->
+                    val density = context.resources.displayMetrics.density
                     DrawingCanvasView(
                         context,
-                        acceptsTool = StylusGate::acceptsTraining,
+                        acceptsTouch = { event -> StylusGate.acceptsImeInk(event, density, fingerInk) },
                         autoSettle = true,
                     ).also { canvas = it }.apply {
                         setOnGlyphSettledListener { strokes -> settled(strokes) }

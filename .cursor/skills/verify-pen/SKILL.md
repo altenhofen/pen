@@ -119,7 +119,7 @@ Kills the emulator pid stored in `/tmp/pen-verify/emulator.pid`, then `adb -s em
 | `scripts/doctor.sh` | Check serial, boot, package, and `versionName=1.0`. |
 | `scripts/drive-settings.sh` | Relaunch `MainActivity` and write proof under `artifacts/settings/`. |
 | `scripts/drive-calibration.sh` | Open Calibrate, pick `0`, Start, hold the pen still for 3 seconds, and write proof under `artifacts/calibration/`. |
-| `scripts/drive-calibration-gestures.sh` | Open Calibrate, switch to `Gestures`, and write proof under `artifacts/gestures/`. |
+| `scripts/drive-calibration-gestures.sh` | Tap `Gestures` on Pen settings and write proof under `artifacts/gestures/`. |
 | `scripts/drive-default-keyboard.sh` | Open system IME settings from `Set as default keyboard` and write proof under `artifacts/default-keyboard/`. |
 | `scripts/drive-profile-export.sh` | Open the save sheet from `Export profile` and write proof under `artifacts/profile-export/`. |
 | `scripts/drive-profile-import.sh` | Open the document picker from `Import profile` and write proof under `artifacts/profile-import/`. |
