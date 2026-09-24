@@ -52,6 +52,8 @@
     <string name="calibrate_gesture_chip">%1$s (%2$d/%3$d)</string>
     <string name="calibrate_gesture_chip_trained">%1$s (%2$d/%3$d, trained)</string>
     <string name="calibrate_gestures_complete">Training saved for %1$d gestures</string>
+    <string name="gesture_clear_training">Clear training</string>
+    <string name="gesture_clear_all_training">Clear all training</string>
     <string name="gesture_lowercase_last_word">Lowercase last word</string>
     <string name="gesture_uppercase_last_word">Uppercase last word</string>
     <string name="gesture_capitalize_last_word">Capitalize last word</string>
