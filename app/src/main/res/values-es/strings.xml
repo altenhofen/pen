@@ -8,6 +8,8 @@
     <string name="stroke_width">Grosor del trazo</string>
     <string name="allow_finger_input">Dedo y lápiz pasivo</string>
     <string name="allow_finger_input_hint">Aceptar el toque en el área de escritura del teclado. Actívalo si no usas un lápiz activo.</string>
+    <string name="double_tap_for_space">Doble toque para espacio</string>
+    <string name="double_tap_for_space_hint">Dos toques rápidos en el área de escritura insertan un espacio, como la tecla de espacio.</string>
     <string name="slider_label_format">%1$s: %2$s</string>
     <string name="settle_window_value">%1$d ms</string>
     <string name="stroke_width_value">%1$.1f dp</string>

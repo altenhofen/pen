@@ -97,6 +97,12 @@ internal fun SettingsScreen(
             checked = current.allowFingerInput,
             onCheckedChange = { enabled -> onUpdate { settings -> settings.withAllowFingerInput(enabled) } },
         )
+        SettingSwitch(
+            title = stringResource(R.string.double_tap_for_space),
+            hint = stringResource(R.string.double_tap_for_space_hint),
+            checked = current.doubleTapForSpace,
+            onCheckedChange = { enabled -> onUpdate { settings -> settings.withDoubleTapForSpace(enabled) } },
+        )
         Button(onClick = onMyWords) {
             Text(stringResource(R.string.action_my_words))
         }

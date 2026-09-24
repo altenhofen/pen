@@ -22,7 +22,6 @@ class DrawingCanvasView(
     private val acceptsTool: (toolType: Int) -> Boolean = StylusGate::accepts,
     private val autoSettle: Boolean = true,
     private val keepInkAfterSettle: Boolean = false,
-    private val doubleTapForSpace: Boolean = false,
 ) : View(context) {
     private val finished = ArrayList<Stroke>()
     private var active: Stroke? = null
@@ -34,6 +33,8 @@ class DrawingCanvasView(
     private var settleMillis = MotorSettings.Default.settleMillis
     private var prompt: String? = null
     private val tapSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
+    private var doubleTapListener: OnDoubleTapListener? = null
+    private var doubleTapEnabled = false
     private var doubleTapDetector: DoubleTapDetector? = null
     private var downX = 0f
     private var downY = 0f
@@ -44,8 +45,18 @@ class DrawingCanvasView(
     }
 
     fun setOnDoubleTapListener(listener: OnDoubleTapListener?) {
-        doubleTapDetector = if (doubleTapForSpace && listener != null) {
-            DoubleTapDetector.fromView(this, listener::onDoubleTap)
+        doubleTapListener = listener
+        rebuildDoubleTapDetector()
+    }
+
+    fun setDoubleTapForSpaceEnabled(enabled: Boolean) {
+        doubleTapEnabled = enabled
+        rebuildDoubleTapDetector()
+    }
+
+    private fun rebuildDoubleTapDetector() {
+        doubleTapDetector = if (doubleTapEnabled && doubleTapListener != null) {
+            DoubleTapDetector.fromView(this, doubleTapListener!!::onDoubleTap)
         } else {
             null
         }

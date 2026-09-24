@@ -37,6 +37,7 @@ private val STROKE_WIDTH_DP = floatPreferencesKey("stroke_width_dp")
 private val ALLOW_FINGER_INPUT = booleanPreferencesKey("allow_finger_input")
 private val SPACE_AFTER_FULL_WORD = booleanPreferencesKey("space_after_full_word")
 private val RECOGNIZE_SPACES = booleanPreferencesKey("recognize_spaces_in_handwriting")
+private val DOUBLE_TAP_FOR_SPACE = booleanPreferencesKey("double_tap_for_space")
 private val HANDWRITING_LANGUAGE = stringPreferencesKey("handwriting_language")
 
 private class PreferencesMotorSettingsStore(private val store: DataStore<Preferences>) : MotorSettingsStore {
@@ -67,6 +68,7 @@ private class PreferencesMotorSettingsStore(private val store: DataStore<Prefere
             prefs[ALLOW_FINGER_INPUT],
             prefs[SPACE_AFTER_FULL_WORD],
             prefs[RECOGNIZE_SPACES],
+            prefs[DOUBLE_TAP_FOR_SPACE],
             prefs[HANDWRITING_LANGUAGE],
         )
 
@@ -76,6 +78,7 @@ private class PreferencesMotorSettingsStore(private val store: DataStore<Prefere
         prefs[ALLOW_FINGER_INPUT] = settings.allowFingerInput
         prefs[SPACE_AFTER_FULL_WORD] = settings.spaceAfterFullWord
         prefs[RECOGNIZE_SPACES] = settings.recognizeSpacesInHandwriting
+        prefs[DOUBLE_TAP_FOR_SPACE] = settings.doubleTapForSpace
         val handwriting = settings.handwriting.stored()
         if (handwriting == null) prefs.remove(HANDWRITING_LANGUAGE) else prefs[HANDWRITING_LANGUAGE] = handwriting
     }

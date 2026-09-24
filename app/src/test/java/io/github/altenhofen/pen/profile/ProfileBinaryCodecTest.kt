@@ -33,12 +33,14 @@ class ProfileBinaryCodecTest {
             .withAllowFingerInput(true)
             .withSpaceAfterFullWord(true)
             .withRecognizeSpacesInHandwriting(true)
+            .withDoubleTapForSpace(false)
         val decoded = roundTrip(profileOf(settings = tuned))
         assertEquals(900L, decoded.settings.settleMillis)
         assertEquals(5.5f, decoded.settings.strokeWidthDp)
         assertEquals(true, decoded.settings.allowFingerInput)
         assertEquals(true, decoded.settings.spaceAfterFullWord)
         assertEquals(true, decoded.settings.recognizeSpacesInHandwriting)
+        assertEquals(false, decoded.settings.doubleTapForSpace)
     }
 
     @Test

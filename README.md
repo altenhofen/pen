@@ -47,6 +47,7 @@ Open the **pen** app (or the keyboard’s settings entry). The screen title is *
 
 - **Add space after full word.** After a guess longer than one character, insert a space. A following punctuation mark takes that space and puts it after the mark. Off by default.
 - **Recognize spaces in handwriting.** When on, gaps the word model sees become spaces. When off, one settled ink group is treated as one token (spaces from the model are stripped). Off by default.
+- **Double-tap for space.** When on, two quick taps on the ink canvas insert a space. On by default.
 - **Settle window.** 300–1200 ms. Default 600 ms. Also used on the Calibrate and My words canvases.
 - **Stroke width.** 2.0–16.0 dp. Default 6.0 dp.
 - **Finger and passive pen.** Allow touch on the *keyboard* ink area. Off by default. Calibrate and My words training already accept finger, stylus, and mouse.
